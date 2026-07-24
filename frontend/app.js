@@ -32,6 +32,8 @@ let currentLows       = [];
 let currentCloses     = [];
 let currentVols       = [];
 let currentInd        = null;   // インジケーター全配列
+let currentTicker     = null;   // 現在表示中のティッカー（値幅制限の市場判定用）
+let currentInterval   = null;   // 現在表示中の足種
 let candleCount       = 150;    // 表示本数
 let dragState         = null;
 let predCandles       = [];     // 確定済み予測ローソク足 { slot, open, close }
@@ -386,6 +388,49 @@ function screenToPrice(clientY, fl) {
   return yr[1] - frac * (yr[1] - yr[0]);
 }
 
+// ---- 値幅制限（ストップ高・ストップ安） ----
+// 東証の制限値幅テーブル（基準値段の上限（未満）→ 制限値幅）
+const JP_PRICE_LIMIT_TABLE = [
+  [100, 30], [200, 50], [500, 80], [700, 100], [1000, 150],
+  [1500, 300], [2000, 400], [3000, 500], [5000, 700], [7000, 1000],
+  [10000, 1500], [15000, 3000], [20000, 4000], [30000, 5000], [50000, 7000],
+  [70000, 10000], [100000, 15000], [150000, 30000], [200000, 40000], [300000, 50000],
+  [500000, 70000], [700000, 100000], [1000000, 150000], [1500000, 300000], [2000000, 400000],
+  [3000000, 500000], [5000000, 700000], [7000000, 1000000], [10000000, 1500000], [15000000, 3000000],
+  [20000000, 4000000], [30000000, 5000000], [50000000, 7000000],
+];
+
+function getPriceLimitWidth(basePrice) {
+  for (const [upper, width] of JP_PRICE_LIMIT_TABLE) {
+    if (basePrice < upper) return width;
+  }
+  return 10000000;
+}
+
+function isJpTicker(ticker) {
+  return !!ticker && ticker.endsWith('.T');
+}
+
+// 予測スロットの基準値段（前日終値相当）: 最初の予測足は実データ最終終値、
+// 2本目以降はチェーンで確定した直前の予測足の終値
+function getPredBasePrice(slot) {
+  const n = currentDates.length;
+  if (slot <= n) return currentCloses[currentCloses.length - 1];
+  const prev = predCandles.find(c => c.slot === slot - 1);
+  return prev ? prev.close : currentCloses[currentCloses.length - 1];
+}
+
+// 日本株の日足のみ、基準値段に応じたストップ高・ストップ安の範囲にクランプする
+function clampToPriceLimit(price, slot) {
+  if (currentInterval !== '1d' || !isJpTicker(currentTicker)) return price;
+  const base = getPredBasePrice(slot);
+  if (base == null || !isFinite(base)) return price;
+  const width = getPriceLimitWidth(base);
+  const hi = base + width;
+  const lo = Math.max(0, base - width);
+  return Math.min(hi, Math.max(lo, price));
+}
+
 // { slot, open, high, low, close } → Plotly shapes（ボディ + ウィック）
 function predToShapes(p) {
   const bodyLo = Math.min(p.open, p.close);
@@ -613,7 +658,7 @@ chartDiv.addEventListener('mousedown', e => {
 
   // 次の予測スロット（最新足の直後）→ 予測描画開始
   if (xData >= nextSlot - 0.5 && xData < nextSlot + 0.5) {
-    const price = screenToPrice(e.clientY, fl);
+    const price = clampToPriceLimit(screenToPrice(e.clientY, fl), nextSlot);
     predDraw = { slot: nextSlot, open: price, close: price, high: price, low: price };
     chartDiv.style.cursor = 'crosshair';
     e.preventDefault();
@@ -647,8 +692,8 @@ document.addEventListener('mousemove', e => {
   if (predDraw) {
     const fl = chartDiv._fullLayout;
     if (!fl) return;
-    const price = screenToPrice(e.clientY, fl);
-    const xData = screenToXIndex(e.clientX, fl);
+    const rawPrice = screenToPrice(e.clientY, fl);
+    const xData    = screenToXIndex(e.clientX, fl);
 
     // 次スロットに入ったら前の足を確定して自動進行（始値 = 前の足の終値）
     while (xData >= predDraw.slot + 0.5) {
@@ -657,7 +702,8 @@ document.addEventListener('mousemove', e => {
                    high: predDraw.close, low: predDraw.close };
     }
 
-    // 終値・高値・安値を更新
+    // 終値・高値・安値を更新（基準値段のストップ高・安でクランプ）
+    const price = clampToPriceLimit(rawPrice, predDraw.slot);
     predDraw = {
       ...predDraw,
       close: price,
@@ -806,13 +852,15 @@ function renderChart(data) {
   const ind    = data.indicators;
   const n      = dates.length;
 
-  currentDates  = dates;
-  currentOpens  = opens;
-  currentHighs  = highs;
-  currentLows   = lows;
-  currentCloses = closes;
-  currentVols   = vols;
-  currentInd    = ind;
+  currentDates    = dates;
+  currentOpens    = opens;
+  currentHighs    = highs;
+  currentLows     = lows;
+  currentCloses   = closes;
+  currentVols     = vols;
+  currentInd      = ind;
+  currentTicker   = data.ticker;
+  currentInterval = data.interval;
   predCandles   = [];
   predDraw      = null;
   drawnLines    = [];
