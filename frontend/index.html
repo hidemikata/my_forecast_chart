@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>株価チャート</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"
+          integrity="sha384-cCVCZkAjYNxaYKbM8lsArLznDF/SvMFr1jcZrvOpSTCa0W40ZAdLzHCEulnUa5i7"
+          crossorigin="anonymous"></script>
+</head>
+<body>
+
+  <div id="toolbar">
+    <div class="ticker-wrap">
+      <input id="ticker-input" type="text" placeholder="7203" value="7203"
+             autocomplete="off" spellcheck="false">
+      <ul id="ticker-dropdown"></ul>
+    </div>
+    <div class="sep"></div>
+    <select id="interval-select">
+      <option value="1d">日足</option>
+      <option value="1wk">週足</option>
+      <option value="1mo">月足</option>
+    </select>
+    <div class="sep"></div>
+    <button class="candle-btn" data-count="50">50</button>
+    <button class="candle-btn" data-count="100">100</button>
+    <button class="candle-btn active" data-count="150">150</button>
+    <button class="candle-btn" data-count="200">200</button>
+    <button class="candle-btn" data-count="250">250</button>
+    <button class="candle-btn" data-count="300">300</button>
+    <div class="sep"></div>
+    <button id="draw-line-btn" title="直線を描く">✏</button>
+    <button id="y-fit-btn" title="高値・安値フィット表示">↕</button>
+    <div class="sep"></div>
+    <span id="latest-date"></span>
+    <button id="update-btn">更新</button>
+  </div>
+
+  <div id="loading-bar"><div id="loading-bar-inner"></div></div>
+  <div id="loading-overlay"><div id="spinner"></div><span id="loading-text">データを取得中...</span></div>
+  <div id="error-msg"></div>
+  <div id="hover-info"></div>
+
+  <div id="chart"></div>
+  <div id="empty-state">証券コードを入力してください</div>
+
+  <script src="app.js"></script>
+</body>
+</html>

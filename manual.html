@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>株価チャートアプリ マニュアル</title>
+<style>
+/* ===== BASE RESET ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ===== FONTS ===== */
+@import url('data:text/css,');
+
+/* ===== ROOT VARS ===== */
+:root {
+  --bg-deep:    #0a0e27;
+  --bg-dark:    #1a1f4e;
+  --gold:       #ffd700;
+  --cyan:       #00f5ff;
+  --magenta:    #ff00ff;
+  --text:       #ffffff;
+  --subtext:    #a0a8d0;
+  --card-bg:    rgba(255,255,255,0.05);
+  --card-border:rgba(255,255,255,0.10);
+  --green:      #1af5a0;
+  --red:        #ff4d6d;
+  --blue:       #3b6ee8;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: linear-gradient(135deg, var(--bg-deep) 0%, var(--bg-dark) 50%, #0d1235 100%);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Hiragino Sans, sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ===== STAR PARTICLES ===== */
+.stars { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; overflow: hidden; }
+.star {
+  position: absolute;
+  border-radius: 50%;
+  background: #fff;
+  animation: twinkle var(--dur, 3s) ease-in-out infinite var(--delay, 0s),
+             drift var(--dur2, 8s) ease-in-out infinite var(--delay2, 0s);
+}
+@keyframes twinkle {
+  0%, 100% { opacity: 0.1; transform: scale(1); }
+  50%       { opacity: 0.9; transform: scale(1.4); }
+}
+@keyframes drift {
+  0%, 100% { transform: translateY(0) translateX(0); }
+  33%       { transform: translateY(-12px) translateX(8px); }
+  66%       { transform: translateY(8px) translateX(-6px); }
+}
+
+/* ===== NAV ===== */
+nav {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(10,14,39,0.80);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid rgba(0,245,255,0.15);
+  padding: 0 24px;
+}
+.nav-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  height: 52px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.nav-logo {
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--gold), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+nav a {
+  color: var(--subtext);
+  text-decoration: none;
+  font-size: 13px;
+  transition: color .2s;
+  flex-shrink: 0;
+}
+nav a:hover { color: var(--cyan); }
+
+/* ===== MAIN WRAPPER ===== */
+.page { position: relative; z-index: 1; }
+.container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+
+/* ===== SECTION TITLES ===== */
+.section-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 8px;
+}
+.section-title {
+  font-size: 28px;
+  font-weight: 800;
+  background: linear-gradient(90deg, #fff 0%, var(--subtext) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 12px;
+}
+.section-desc { color: var(--subtext); max-width: 680px; margin-bottom: 40px; }
+
+/* ===== HR ===== */
+.light-hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--cyan), var(--magenta), transparent);
+  margin: 80px 0;
+  opacity: 0.5;
+}
+
+/* ===== CARDS ===== */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 24px;
+  transition: box-shadow .3s, border-color .3s;
+}
+.card:hover {
+  box-shadow: 0 0 24px rgba(0,245,255,0.18), 0 0 48px rgba(255,215,0,0.06);
+  border-color: rgba(0,245,255,0.35);
+}
+
+/* ===== GLOWING BADGE ===== */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.badge-gold   { background: rgba(255,215,0,0.15);  border: 1px solid rgba(255,215,0,0.5);  color: var(--gold);    }
+.badge-cyan   { background: rgba(0,245,255,0.12);  border: 1px solid rgba(0,245,255,0.4);  color: var(--cyan);    }
+.badge-magenta{ background: rgba(255,0,255,0.12);  border: 1px solid rgba(255,0,255,0.4);  color: var(--magenta); }
+.badge-green  { background: rgba(26,245,160,0.12); border: 1px solid rgba(26,245,160,0.4); color: var(--green);   }
+
+/* ===== STEP BADGE ===== */
+.step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--cyan), var(--magenta));
+  font-weight: 900;
+  font-size: 15px;
+  color: #0a0e27;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(0,245,255,0.5);
+}
+
+/* ===== HERO ===== */
+#hero {
+  padding: 96px 0 80px;
+  text-align: center;
+}
+.hero-eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  margin-bottom: 20px;
+}
+.hero-title {
+  font-size: clamp(36px, 6vw, 72px);
+  font-weight: 900;
+  line-height: 1.1;
+  background: linear-gradient(135deg, #ffffff 0%, var(--gold) 40%, var(--cyan) 70%, var(--magenta) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 20px;
+  animation: shimmer 4s ease-in-out infinite;
+  background-size: 200%;
+}
+@keyframes shimmer {
+  0%, 100% { background-position: 0% 50%; }
+  50%       { background-position: 100% 50%; }
+}
+.hero-sub {
+  font-size: 18px;
+  color: var(--subtext);
+  max-width: 600px;
+  margin: 0 auto 36px;
+}
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 48px;
+}
+
+/* ===== ARCH DIAGRAM ===== */
+.arch-diagram {
+  width: 100%;
+  max-width: 820px;
+  margin: 0 auto;
+}
+
+/* ===== GRID ===== */
+.grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+
+/* ===== FEATURE CARDS ===== */
+.feature-icon {
+  font-size: 28px;
+  margin-bottom: 12px;
+  display: block;
+}
+.feature-title { font-size: 16px; font-weight: 700; margin-bottom: 8px; color: var(--gold); }
+.feature-body  { font-size: 13px; color: var(--subtext); line-height: 1.65; }
+
+/* ===== INDICATOR MINI CHART (SVG) ===== */
+.ind-chart { display: block; margin: 16px auto 0; }
+
+/* ===== TABLE ===== */
+.tbl-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--card-border); }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+thead th {
+  background: rgba(0,245,255,0.08);
+  color: var(--cyan);
+  font-weight: 700;
+  padding: 12px 16px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(0,245,255,0.15);
+}
+tbody td {
+  padding: 10px 16px;
+  color: var(--subtext);
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+  vertical-align: top;
+}
+tbody tr:last-child td { border-bottom: none; }
+tbody tr:hover td { background: rgba(255,255,255,0.03); }
+code {
+  font-family: ui-monospace, 'Courier New', monospace;
+  font-size: 12px;
+  background: rgba(0,245,255,0.1);
+  color: var(--cyan);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+
+/* ===== ACCORDION ===== */
+details {
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+  margin-bottom: 12px;
+  transition: border-color .3s;
+}
+details:hover { border-color: rgba(0,245,255,0.3); }
+details[open] { border-color: rgba(0,245,255,0.4); box-shadow: 0 0 16px rgba(0,245,255,0.1); }
+summary {
+  padding: 16px 20px;
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--text);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  user-select: none;
+}
+summary::before {
+  content: '▶';
+  font-size: 10px;
+  color: var(--cyan);
+  transition: transform .2s;
+  flex-shrink: 0;
+}
+details[open] summary::before { transform: rotate(90deg); }
+.acc-body {
+  padding: 0 20px 18px;
+  font-size: 13px;
+  color: var(--subtext);
+  line-height: 1.7;
+}
+.acc-body p + p { margin-top: 8px; }
+
+/* ===== STEP CARDS ===== */
+.step-cards { display: flex; flex-direction: column; gap: 16px; }
+.step-card {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  padding: 20px 24px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  backdrop-filter: blur(10px);
+  transition: box-shadow .3s, border-color .3s;
+}
+.step-card:hover {
+  box-shadow: 0 0 20px rgba(0,245,255,0.15);
+  border-color: rgba(0,245,255,0.3);
+}
+.step-content h3 { font-size: 15px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+.step-content p  { font-size: 13px; color: var(--subtext); }
+.step-content code { font-size: 12px; }
+
+/* ===== UI MOCK ===== */
+.ui-mock {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: 16px;
+}
+.ui-mock-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  font-size: 12px;
+}
+.mock-input {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(0,245,255,0.3);
+  border-radius: 4px;
+  color: var(--cyan);
+  padding: 3px 8px;
+  font-family: monospace;
+  font-size: 12px;
+  width: 80px;
+}
+.mock-select {
+  background: rgba(0,0,0,0.3);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  color: var(--subtext);
+  padding: 3px 8px;
+  font-size: 12px;
+}
+.mock-btn {
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255,255,255,0.15);
+  background: transparent;
+  color: var(--subtext);
+  font-size: 11px;
+  cursor: default;
+}
+.mock-btn.active {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+}
+.mock-btn.primary {
+  background: var(--blue);
+  color: #fff;
+  border-color: var(--blue);
+  margin-left: auto;
+}
+.mock-sep { width: 1px; height: 16px; background: rgba(255,255,255,0.12); flex-shrink: 0; }
+
+/* ===== HOVER INFO MOCK ===== */
+.hover-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 5px 16px;
+  background: rgba(255,255,255,0.04);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  font-family: monospace;
+  font-size: 11px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.hi-lbl { color: var(--subtext); }
+.hi-val { color: var(--text); font-weight: 600; }
+.hi-val.up { color: var(--green); }
+.hi-val.dn { color: var(--red); }
+.hi-sep-v { width: 1px; height: 12px; background: rgba(255,255,255,0.12); flex-shrink: 0; }
+
+/* ===== COMPARE GRID ===== */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.compare-col { padding: 20px 24px; }
+.compare-col:first-child { border-right: 1px solid var(--card-border); }
+.compare-col h4 {
+  font-size: 14px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.compare-col ul { list-style: none; }
+.compare-col ul li {
+  font-size: 13px;
+  color: var(--subtext);
+  padding: 4px 0;
+  padding-left: 14px;
+  position: relative;
+}
+.compare-col ul li::before { content: '•'; position: absolute; left: 0; color: var(--cyan); }
+
+/* ===== FOOTER ===== */
+footer {
+  margin-top: 80px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  padding: 40px 24px;
+  text-align: center;
+}
+.footer-inner { max-width: 1100px; margin: 0 auto; }
+.footer-title {
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(90deg, var(--gold), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 8px;
+}
+.footer-meta { font-size: 12px; color: var(--subtext); line-height: 1.8; }
+
+/* ===== SECTIONS ===== */
+section { padding: 72px 0; }
+
+/* ===== FLOW CHART ===== */
+.flow-wrap { overflow-x: auto; }
+
+/* ===== UTIL ===== */
+.mt-8  { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-24 { margin-top: 24px; }
+.mt-40 { margin-top: 40px; }
+.gold { color: var(--gold); }
+.cyan { color: var(--cyan); }
+.text-sm { font-size: 13px; color: var(--subtext); }
+</style>
+</head>
+<body>
+
+<!-- STARS -->
+<div class="stars" aria-hidden="true" id="stars"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <span class="nav-logo">StockChart</span>
+    <a href="#overview">概要</a>
+    <a href="#quickstart">クイックスタート</a>
+    <a href="#features">機能詳細</a>
+    <a href="#indicators">テクニカル指標</a>
+    <a href="#operations">操作リファレンス</a>
+    <a href="#api">API</a>
+    <a href="#troubleshoot">トラブル</a>
+  </div>
+</nav>
+
+<div class="page">
+
+<!-- ===== HERO ===== -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-eyebrow">Technical Analysis Tool</div>
+    <h1 class="hero-title">株価チャートアプリ<br>マニュアル</h1>
+    <p class="hero-sub">Yahoo Finance からリアルタイムデータを取得し、テクニカル分析・予測描画・直線描画を備えた高機能チャートツール</p>
+    <div class="hero-badges">
+      <span class="badge badge-cyan">FastAPI バックエンド</span>
+      <span class="badge badge-gold">DuckDB キャッシュ</span>
+      <span class="badge badge-magenta">Plotly.js チャート</span>
+      <span class="badge badge-green">日本株 / 米国株</span>
+      <span class="badge badge-cyan">MA / BB / MACD</span>
+      <span class="badge badge-gold">予測ローソク足描画</span>
+      <span class="badge badge-magenta">直線描画モード</span>
+    </div>
+
+    <!-- UI MOCK -->
+    <div class="card" style="max-width:900px;margin:0 auto;padding:0">
+      <div class="ui-mock" style="margin:0;border-radius:16px">
+        <div class="ui-mock-bar">
+          <input class="mock-input" value="7203" readonly>
+          <div class="mock-sep"></div>
+          <select class="mock-select"><option>日足</option></select>
+          <div class="mock-sep"></div>
+          <button class="mock-btn">50</button>
+          <button class="mock-btn">100</button>
+          <button class="mock-btn active">150</button>
+          <button class="mock-btn">200</button>
+          <button class="mock-btn">250</button>
+          <button class="mock-btn">300</button>
+          <div class="mock-sep"></div>
+          <button class="mock-btn">✏</button>
+          <button class="mock-btn">↕</button>
+          <div class="mock-sep"></div>
+          <span style="font-size:11px;color:var(--subtext);font-family:monospace">最新: 7/4</span>
+          <button class="mock-btn primary">更新</button>
+        </div>
+        <div class="hover-bar">
+          <span class="hi-lbl">2025-07-04</span>
+          <div class="hi-sep-v"></div>
+          <span class="hi-lbl">O</span><span class="hi-val">2,680</span>
+          <span class="hi-lbl">H</span><span class="hi-val">2,715</span>
+          <span class="hi-lbl">L</span><span class="hi-val">2,665</span>
+          <span class="hi-lbl">C</span><span class="hi-val up">2,710</span>
+          <span class="hi-lbl">Vol</span><span class="hi-val">1,240万</span>
+          <div class="hi-sep-v"></div>
+          <span class="hi-lbl">MA5</span><span class="hi-val" style="color:#E0AF68">2,698</span>
+          <span class="hi-lbl">MA25</span><span class="hi-val" style="color:#BB9AF7">2,672</span>
+          <span class="hi-lbl">MA75</span><span class="hi-val" style="color:#7AA2F7">2,640</span>
+          <div class="hi-sep-v"></div>
+          <span class="hi-lbl">BB</span><span class="hi-val">2,588 – 2,756</span>
+          <div class="hi-sep-v"></div>
+          <span class="hi-lbl">MACD</span><span class="hi-val up">12.40</span>
+          <span class="hi-lbl">Sig</span><span class="hi-val">9.82</span>
+        </div>
+        <!-- CHART SVG MOCK -->
+        <svg viewBox="0 0 860 280" style="width:100%;display:block;background:#1a1f3e">
+          <!-- Grid lines -->
+          <line x1="0" y1="70"  x2="860" y2="70"  stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+          <line x1="0" y1="140" x2="860" y2="140" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+          <line x1="0" y1="210" x2="860" y2="210" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+          <!-- Background zone (25d) -->
+          <rect x="620" y="0" width="240" height="220" fill="rgba(59,110,232,0.06)"/>
+          <!-- Background zone (75d) -->
+          <rect x="260" y="0" width="360" height="220" fill="rgba(255,165,0,0.05)"/>
+
+          <!-- Year line -->
+          <line x1="260" y1="0" x2="260" y2="220" stroke="rgba(184,194,216,0.4)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="263" y="215" fill="#7A86A8" font-size="9">2025</text>
+
+          <!-- Bollinger bands -->
+          <path d="M10,55 Q200,45 400,60 Q600,75 850,58" stroke="rgba(59,110,232,0.5)" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+          <path d="M10,175 Q200,165 400,180 Q600,195 850,178" stroke="rgba(59,110,232,0.5)" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+          <path d="M10,55 Q200,45 400,60 Q600,75 850,58 L850,178 Q600,195 400,180 Q200,165 10,175Z" fill="rgba(59,110,232,0.07)"/>
+
+          <!-- MA75 -->
+          <path d="M10,140 Q200,138 400,135 Q600,132 850,128" stroke="#7AA2F7" stroke-width="1.2" fill="none" opacity="0.8"/>
+          <!-- MA25 -->
+          <path d="M10,125 Q200,120 400,118 Q600,115 850,112" stroke="#BB9AF7" stroke-width="1.2" fill="none" opacity="0.9"/>
+          <!-- MA5 -->
+          <path d="M10,120 Q150,108 300,115 Q500,122 700,105 Q800,98 850,102" stroke="#E0AF68" stroke-width="1.2" fill="none"/>
+
+          <!-- Candles (simplified) -->
+          <!-- Red candles -->
+          <g fill="none">
+            <rect x="18"  y="118" width="9" height="22" fill="#D63B3B"/>
+            <line x1="22"  y1="112" x2="22"  y2="118" stroke="#D63B3B" stroke-width="1"/>
+            <line x1="22"  y1="140" x2="22"  y2="148" stroke="#D63B3B" stroke-width="1"/>
+
+            <rect x="32"  y="108" width="9" height="18" fill="#1A9960"/>
+            <line x1="36"  y1="102" x2="36"  y2="108" stroke="#1A9960" stroke-width="1"/>
+            <line x1="36"  y1="126" x2="36"  y2="132" stroke="#1A9960" stroke-width="1"/>
+
+            <rect x="46"  y="112" width="9" height="14" fill="#D63B3B"/>
+            <rect x="60"  y="105" width="9" height="20" fill="#1A9960"/>
+            <rect x="74"  y="100" width="9" height="16" fill="#1A9960"/>
+            <rect x="88"  y="108" width="9" height="18" fill="#D63B3B"/>
+            <rect x="102" y="95"  width="9" height="20" fill="#1A9960"/>
+            <rect x="116" y="90"  width="9" height="16" fill="#1A9960"/>
+            <rect x="130" y="98"  width="9" height="15" fill="#D63B3B"/>
+            <rect x="144" y="95"  width="9" height="18" fill="#1A9960"/>
+
+            <rect x="160" y="88"  width="9" height="18" fill="#1A9960"/>
+            <rect x="174" y="92"  width="9" height="14" fill="#D63B3B"/>
+            <rect x="188" y="85"  width="9" height="20" fill="#1A9960"/>
+            <rect x="202" y="82"  width="9" height="16" fill="#1A9960"/>
+            <rect x="216" y="90"  width="9" height="14" fill="#D63B3B"/>
+            <rect x="230" y="86"  width="9" height="18" fill="#1A9960"/>
+            <rect x="244" y="78"  width="9" height="20" fill="#1A9960"/>
+
+            <rect x="265" y="75"  width="9" height="22" fill="#1A9960"/>
+            <rect x="279" y="80"  width="9" height="18" fill="#D63B3B"/>
+            <rect x="293" y="72"  width="9" height="20" fill="#1A9960"/>
+            <rect x="307" y="68"  width="9" height="16" fill="#1A9960"/>
+            <rect x="321" y="76"  width="9" height="14" fill="#D63B3B"/>
+            <rect x="335" y="70"  width="9" height="20" fill="#1A9960"/>
+            <rect x="349" y="65"  width="9" height="18" fill="#1A9960"/>
+            <rect x="363" y="72"  width="9" height="15" fill="#D63B3B"/>
+            <rect x="377" y="68"  width="9" height="20" fill="#1A9960"/>
+            <rect x="391" y="62"  width="9" height="18" fill="#1A9960"/>
+
+            <rect x="408" y="58"  width="9" height="20" fill="#1A9960"/>
+            <rect x="422" y="62"  width="9" height="16" fill="#D63B3B"/>
+            <rect x="436" y="55"  width="9" height="22" fill="#1A9960"/>
+            <rect x="450" y="60"  width="9" height="18" fill="#1A9960"/>
+            <rect x="464" y="68"  width="9" height="20" fill="#D63B3B"/>
+            <rect x="478" y="64"  width="9" height="16" fill="#1A9960"/>
+            <rect x="492" y="58"  width="9" height="20" fill="#1A9960"/>
+
+            <rect x="510" y="55"  width="9" height="22" fill="#1A9960"/>
+            <rect x="524" y="60"  width="9" height="18" fill="#D63B3B"/>
+            <rect x="538" y="52"  width="9" height="20" fill="#1A9960"/>
+            <rect x="552" y="48"  width="9" height="16" fill="#1A9960"/>
+            <rect x="566" y="56"  width="9" height="18" fill="#D63B3B"/>
+            <rect x="580" y="50"  width="9" height="20" fill="#1A9960"/>
+            <rect x="594" y="44"  width="9" height="22" fill="#1A9960"/>
+            <rect x="608" y="50"  width="9" height="16" fill="#D63B3B"/>
+
+            <rect x="628" y="46"  width="9" height="22" fill="#1A9960"/>
+            <rect x="642" y="52"  width="9" height="18" fill="#D63B3B"/>
+            <rect x="656" y="44"  width="9" height="20" fill="#1A9960"/>
+            <rect x="670" y="40"  width="9" height="18" fill="#1A9960"/>
+            <rect x="684" y="48"  width="9" height="14" fill="#D63B3B"/>
+            <rect x="698" y="42"  width="9" height="20" fill="#1A9960"/>
+            <rect x="712" y="38"  width="9" height="18" fill="#1A9960"/>
+            <rect x="726" y="44"  width="9" height="16" fill="#D63B3B"/>
+            <rect x="740" y="36"  width="9" height="20" fill="#1A9960"/>
+            <rect x="754" y="32"  width="9" height="22" fill="#1A9960"/>
+            <rect x="768" y="38"  width="9" height="16" fill="#D63B3B"/>
+            <rect x="782" y="30"  width="9" height="20" fill="#1A9960"/>
+            <rect x="796" y="26"  width="9" height="22" fill="#1A9960"/>
+            <rect x="810" y="32"  width="9" height="18" fill="#D63B3B"/>
+            <rect x="824" y="24"  width="9" height="20" fill="#1A9960"/>
+            <rect x="838" y="20"  width="9" height="22" fill="#1A9960"/>
+          </g>
+
+          <!-- Prediction candle zone highlight -->
+          <rect x="852" y="0" width="8" height="220" fill="rgba(0,245,255,0.04)" stroke="rgba(0,245,255,0.2)" stroke-width="1" stroke-dasharray="3,3"/>
+          <text x="855" y="180" fill="rgba(0,245,255,0.6)" font-size="8" transform="rotate(-90,855,180)">予測ゾーン</text>
+
+          <!-- Volume subplot -->
+          <rect x="0" y="222" width="860" height="58" fill="rgba(0,0,0,0.2)"/>
+          <text x="6" y="232" fill="#7A86A8" font-size="8">出来高</text>
+          <rect x="18"  y="250" width="9" height="28" fill="rgba(212,63,63,0.6)"/>
+          <rect x="32"  y="244" width="9" height="34" fill="rgba(26,153,96,0.6)"/>
+          <rect x="46"  y="256" width="9" height="22" fill="rgba(212,63,63,0.6)"/>
+          <rect x="60"  y="248" width="9" height="30" fill="rgba(26,153,96,0.6)"/>
+          <rect x="74"  y="242" width="9" height="36" fill="rgba(26,153,96,0.6)"/>
+          <rect x="88"  y="252" width="9" height="26" fill="rgba(212,63,63,0.6)"/>
+          <rect x="102" y="246" width="9" height="32" fill="rgba(26,153,96,0.6)"/>
+          <rect x="116" y="240" width="9" height="38" fill="rgba(26,153,96,0.6)"/>
+          <rect x="130" y="254" width="9" height="24" fill="rgba(212,63,63,0.6)"/>
+          <rect x="144" y="244" width="9" height="34" fill="rgba(26,153,96,0.6)"/>
+          <rect x="160" y="238" width="9" height="40" fill="rgba(26,153,96,0.6)"/>
+          <rect x="174" y="250" width="9" height="28" fill="rgba(212,63,63,0.6)"/>
+          <rect x="188" y="242" width="9" height="36" fill="rgba(26,153,96,0.6)"/>
+
+          <!-- Right axis labels -->
+          <text x="845" y="60"  fill="#7A86A8" font-size="8" text-anchor="start">2,800</text>
+          <text x="845" y="130" fill="#7A86A8" font-size="8" text-anchor="start">2,700</text>
+          <text x="845" y="200" fill="#7A86A8" font-size="8" text-anchor="start">2,600</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="light-hr">
+
+<!-- ===== OVERVIEW ===== -->
+<section id="overview">
+  <div class="container">
+    <div class="section-label">System Overview</div>
+    <h2 class="section-title">システム概要</h2>
+    <p class="section-desc">Yahoo Finance から株価データを自動取得し、DuckDB にキャッシュ。高速なローカル DB で繰り返し参照の待ち時間をゼロに近づけます。</p>
+
+    <!-- Architecture SVG -->
+    <div class="arch-diagram">
+      <svg viewBox="0 0 820 340" style="width:100%;display:block" role="img" aria-label="アーキテクチャ図">
+        <defs>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(0,245,255,0.7)"/>
+          </marker>
+          <marker id="arrow-gold" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,215,0,0.8)"/>
+          </marker>
+        </defs>
+
+        <!-- User -->
+        <rect x="20" y="130" width="120" height="80" rx="10" fill="rgba(0,245,255,0.08)" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+        <text x="80" y="164" text-anchor="middle" fill="#00f5ff" font-size="22">👤</text>
+        <text x="80" y="184" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">ユーザー</text>
+        <text x="80" y="200" text-anchor="middle" fill="#a0a8d0" font-size="10">ブラウザ操作</text>
+
+        <!-- Frontend -->
+        <rect x="200" y="100" width="160" height="140" rx="10" fill="rgba(255,215,0,0.07)" stroke="rgba(255,215,0,0.45)" stroke-width="1.5"/>
+        <text x="280" y="130" text-anchor="middle" fill="#ffd700" font-size="11" font-weight="700">フロントエンド</text>
+        <line x1="205" y1="138" x2="355" y2="138" stroke="rgba(255,215,0,0.2)" stroke-width="1"/>
+        <text x="280" y="158" text-anchor="middle" fill="#fff" font-size="11">index.html</text>
+        <text x="280" y="176" text-anchor="middle" fill="#fff" font-size="11">app.js</text>
+        <text x="280" y="194" text-anchor="middle" fill="#fff" font-size="11">style.css</text>
+        <text x="280" y="214" text-anchor="middle" fill="#a0a8d0" font-size="9">Plotly.js</text>
+        <text x="280" y="228" text-anchor="middle" fill="#a0a8d0" font-size="9">ポート: file://</text>
+
+        <!-- Arrow: User → FE -->
+        <line x1="142" y1="170" x2="196" y2="170" stroke="rgba(0,245,255,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Backend -->
+        <rect x="430" y="100" width="160" height="140" rx="10" fill="rgba(255,0,255,0.07)" stroke="rgba(255,0,255,0.4)" stroke-width="1.5"/>
+        <text x="510" y="130" text-anchor="middle" fill="#ff00ff" font-size="11" font-weight="700">バックエンド</text>
+        <line x1="435" y1="138" x2="585" y2="138" stroke="rgba(255,0,255,0.2)" stroke-width="1"/>
+        <text x="510" y="158" text-anchor="middle" fill="#fff" font-size="11">FastAPI</text>
+        <text x="510" y="176" text-anchor="middle" fill="#fff" font-size="11">main.py</text>
+        <text x="510" y="194" text-anchor="middle" fill="#a0a8d0" font-size="9">routers/stock.py</text>
+        <text x="510" y="210" text-anchor="middle" fill="#a0a8d0" font-size="9">routers/securities.py</text>
+        <text x="510" y="228" text-anchor="middle" fill="#a0a8d0" font-size="9">ポート: 8000</text>
+
+        <!-- Arrow: FE → BE -->
+        <line x1="362" y1="155" x2="426" y2="155" stroke="rgba(0,245,255,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text x="394" y="148" text-anchor="middle" fill="#a0a8d0" font-size="9">HTTP GET</text>
+        <line x1="426" y1="185" x2="362" y2="185" stroke="rgba(255,215,0,0.6)" stroke-width="1.5" marker-end="url(#arrow-gold)"/>
+        <text x="394" y="198" text-anchor="middle" fill="#a0a8d0" font-size="9">JSON</text>
+
+        <!-- DuckDB -->
+        <rect x="430" y="275" width="160" height="55" rx="10" fill="rgba(26,245,160,0.07)" stroke="rgba(26,245,160,0.4)" stroke-width="1.5"/>
+        <text x="510" y="300" text-anchor="middle" fill="#1af5a0" font-size="11" font-weight="700">DuckDB</text>
+        <text x="510" y="318" text-anchor="middle" fill="#a0a8d0" font-size="9">stock.duckdb (ローカルファイル)</text>
+
+        <!-- Arrow: BE → DB -->
+        <line x1="510" y1="242" x2="510" y2="272" stroke="rgba(26,245,160,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+        <!-- Yahoo Finance -->
+        <rect x="630" y="100" width="170" height="55" rx="10" fill="rgba(255,165,0,0.07)" stroke="rgba(255,165,0,0.4)" stroke-width="1.5"/>
+        <text x="715" y="124" text-anchor="middle" fill="#ffaa00" font-size="11" font-weight="700">Yahoo Finance API</text>
+        <text x="715" y="142" text-anchor="middle" fill="#a0a8d0" font-size="9">query2.finance.yahoo.com</text>
+
+        <!-- Arrow: BE → Yahoo -->
+        <line x1="592" y1="140" x2="626" y2="140" stroke="rgba(255,165,0,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <text x="609" y="132" text-anchor="middle" fill="#a0a8d0" font-size="8">差分取得</text>
+        <text x="609" y="142" text-anchor="middle" fill="#a0a8d0" font-size="8">初回のみ</text>
+
+        <!-- Cache hit label -->
+        <text x="510" y="260" text-anchor="middle" fill="#a0a8d0" font-size="8">キャッシュ R/W</text>
+      </svg>
+    </div>
+
+    <div class="grid-3 mt-40">
+      <div class="card">
+        <div class="feature-icon">🌐</div>
+        <div class="feature-title">対応市場</div>
+        <div class="feature-body">
+          <strong class="gold">日本株</strong>: 4桁コード（例: 7203）<br>
+          <strong style="color:var(--cyan)">米国株</strong>: ティッカー（例: AAPL, MSFT）<br>
+          内部的に日本株は末尾に <code>.T</code> を付加して Yahoo Finance に問い合わせます。
+        </div>
+      </div>
+      <div class="card">
+        <div class="feature-icon">🗄️</div>
+        <div class="feature-title">データ仕様</div>
+        <div class="feature-body">
+          最大 <strong class="gold">10年分</strong> の OHLCV データを DuckDB にキャッシュ。<br>
+          2回目以降は DB から高速返却。データが古い場合のみ Yahoo Finance から差分取得します。
+        </div>
+      </div>
+      <div class="card">
+        <div class="feature-icon">⚡</div>
+        <div class="feature-title">データ鮮度</div>
+        <div class="feature-body">
+          日足: 直近平日まで<br>
+          週足: 当週月曜日まで<br>
+          月足: 当月 1 日まで<br>
+          鮮度チェックが自動で走り、古ければ差分取得します。
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="light-hr">
+
+<!-- ===== QUICKSTART ===== -->
+<section id="quickstart">
+  <div class="container">
+    <div class="section-label">Quick Start</div>
+    <h2 class="section-title">クイックスタート</h2>
+    <p class="section-desc">最短 3 ステップでチャートを表示します。初回起動時は Yahoo Finance からデータを自動取得するため、数秒かかる場合があります。</p>
+
+    <!-- Flow diagram -->
+    <div class="flow-wrap" style="margin-bottom:40px">
+      <svg viewBox="0 0 820 80" style="width:100%;min-width:600px;display:block" role="img" aria-label="起動フロー">
+        <defs>
+          <marker id="fa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#00f5ff"/>
+          </marker>
+        </defs>
+        <!-- Step 1 -->
+        <rect x="10"  y="15" width="160" height="50" rx="8" fill="rgba(0,245,255,0.1)" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
+        <text x="90"  y="36" text-anchor="middle" fill="#00f5ff" font-size="10" font-weight="700">STEP 1</text>
+        <text x="90"  y="52" text-anchor="middle" fill="#fff" font-size="11">バックエンド起動</text>
+        <text x="90"  y="64" text-anchor="middle" fill="#a0a8d0" font-size="9">uvicorn main:app --port 8000</text>
+        <!-- Arrow -->
+        <line x1="172" y1="40" x2="215" y2="40" stroke="#00f5ff" stroke-width="1.5" marker-end="url(#fa)"/>
+        <!-- Step 2 -->
+        <rect x="220" y="15" width="160" height="50" rx="8" fill="rgba(255,215,0,0.08)" stroke="rgba(255,215,0,0.45)" stroke-width="1.5"/>
+        <text x="300" y="36" text-anchor="middle" fill="#ffd700" font-size="10" font-weight="700">STEP 2</text>
+        <text x="300" y="52" text-anchor="middle" fill="#fff" font-size="11">HTML を開く</text>
+        <text x="300" y="64" text-anchor="middle" fill="#a0a8d0" font-size="9">frontend/index.html をブラウザで</text>
+        <!-- Arrow -->
+        <line x1="382" y1="40" x2="425" y2="40" stroke="#00f5ff" stroke-width="1.5" marker-end="url(#fa)"/>
+        <!-- Step 3 -->
+        <rect x="430" y="15" width="160" height="50" rx="8" fill="rgba(255,0,255,0.07)" stroke="rgba(255,0,255,0.4)" stroke-width="1.5"/>
+        <text x="510" y="36" text-anchor="middle" fill="#ff00ff" font-size="10" font-weight="700">STEP 3</text>
+        <text x="510" y="52" text-anchor="middle" fill="#fff" font-size="11">銘柄コード入力</text>
+        <text x="510" y="64" text-anchor="middle" fill="#a0a8d0" font-size="9">7203 / AAPL など</text>
+        <!-- Arrow -->
+        <line x1="592" y1="40" x2="635" y2="40" stroke="#00f5ff" stroke-width="1.5" marker-end="url(#fa)"/>
+        <!-- Result -->
+        <rect x="640" y="15" width="170" height="50" rx="8" fill="rgba(26,245,160,0.08)" stroke="rgba(26,245,160,0.4)" stroke-width="1.5"/>
+        <text x="725" y="36" text-anchor="middle" fill="#1af5a0" font-size="10" font-weight="700">完了</text>
+        <text x="725" y="52" text-anchor="middle" fill="#fff" font-size="11">チャート表示</text>
+        <text x="725" y="64" text-anchor="middle" fill="#a0a8d0" font-size="9">テクニカル指標も自動表示</text>
+      </svg>
+    </div>
+
+    <div class="step-cards">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h3>バックエンドを起動する</h3>
+          <p>ターミナルで以下コマンドを実行します。<code>--reload</code> オプションでファイル変更を自動検知します。</p>
+          <div style="margin-top:10px;padding:14px 18px;background:rgba(0,0,0,0.4);border-radius:8px;border:1px solid rgba(0,245,255,0.2);font-family:monospace;font-size:13px;color:#1af5a0">
+            cd stock-chart/backend<br>
+            uvicorn main:app --reload --port 8000
+          </div>
+          <p class="mt-8">起動成功すると <code>http://localhost:8000</code> で API が待ち受けます。初回起動時に DuckDB ファイル (<code>stock.duckdb</code>) が自動生成され、証券マスターデータのバックグラウンド取得も開始します。</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h3>フロントエンドをブラウザで開く</h3>
+          <p>ファイルマネージャーまたは以下コマンドで <code>frontend/index.html</code> をブラウザで開きます。</p>
+          <div style="margin-top:10px;padding:14px 18px;background:rgba(0,0,0,0.4);border-radius:8px;border:1px solid rgba(255,215,0,0.2);font-family:monospace;font-size:13px;color:#ffd700">
+            open stock-chart/frontend/index.html
+          </div>
+          <p class="mt-8">バックエンドが起動済みであれば、ページを開いた時点で銘柄マスターの検索サジェストが有効になります。</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h3>銘柄コードを入力してチャートを表示する</h3>
+          <p>上部入力欄に証券コードを入力します。入力すると候補がドロップダウンで表示されます。</p>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px">
+            <span class="badge badge-cyan">7203 → トヨタ自動車</span>
+            <span class="badge badge-gold">9984 → ソフトバンクグループ</span>
+            <span class="badge badge-magenta">AAPL → Apple Inc.</span>
+            <span class="badge badge-green">MSFT → Microsoft</span>
+          </div>
+          <p class="mt-8">候補を選択するか Enter キーを押すとデータを取得してチャートが描画されます。初回は Yahoo Finance からダウンロードするため数秒かかります。</p>
+        </div>
+      </div>
+
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h3>（任意）Python 依存パッケージをインストールする</h3>
+          <p>初回セットアップ時のみ実行します。</p>
+          <div style="margin-top:10px;padding:14px 18px;background:rgba(0,0,0,0.4);border-radius:8px;border:1px solid rgba(26,245,160,0.2);font-family:monospace;font-size:13px;color:#1af5a0">
+            cd stock-chart/backend<br>
+            pip install -r requirements.txt
+          </div>
+          <div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px">
+            <span class="badge badge-cyan">fastapi 0.138.1</span>
+            <span class="badge badge-gold">uvicorn</span>
+            <span class="badge badge-magenta">pandas 2.2.1</span>
+            <span class="badge badge-green">duckdb 1.5.4</span>
+            <span class="badge badge-cyan">httpx 0.28.1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="light-hr">
+
+<!-- ===== FEATURES ===== -->
+<section id="features">
+  <div class="container">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">機能詳細</h2>
+    <p class="section-desc">チャートの読み取りから将来予測の描画まで、分析に必要な機能を網羅しています。</p>
+
+    <div class="grid-2">
+
+      <!-- 銘柄検索 -->
+      <div class="card">
+        <span class="feature-icon">🔍</span>
+        <div class="feature-title">銘柄検索・オートコンプリート</div>
+        <div class="feature-body">
+          入力欄に証券コードや銘柄名の一部を入力すると、180ms のデバウンスをかけて API を呼び出しドロップダウンに最大 8 件の候補を表示します。<br><br>
+          キーボード操作: <code>↑</code> / <code>↓</code> で候補移動、<code>Enter</code> で確定、<code>Esc</code> で閉じる。<br><br>
+          入力可能文字は英数字・ドット（<code>.</code>）・ハイフン（<code>-</code>）・キャレット（<code>^</code>）のみ。
+        </div>
+        <!-- Dropdown mock -->
+        <div style="margin-top:14px;background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);border-radius:8px;overflow:hidden">
+          <div style="padding:5px 14px;background:rgba(0,245,255,0.05);border-bottom:1px solid rgba(255,255,255,0.06)">
+            <input style="background:transparent;border:none;color:#00f5ff;font-family:monospace;font-size:12px;outline:none;width:100%" value="720" readonly>
+          </div>
+          <div style="padding:6px 14px;display:flex;gap:10px;align-items:center;background:rgba(0,245,255,0.08)">
+            <span style="font-family:monospace;font-size:12px;color:#3b6ee8;font-weight:700;width:48px">7203</span>
+            <span style="font-size:12px;color:#fff;flex:1">トヨタ自動車</span>
+            <span style="font-size:10px;color:#fff;background:#E84040;padding:1px 5px;border-radius:3px">JP</span>
+          </div>
+          <div style="padding:6px 14px;display:flex;gap:10px;align-items:center">
+            <span style="font-family:monospace;font-size:12px;color:#3b6ee8;font-weight:700;width:48px">7201</span>
+            <span style="font-size:12px;color:#a0a8d0;flex:1">日産自動車</span>
+            <span style="font-size:10px;color:#fff;background:#E84040;padding:1px 5px;border-radius:3px">JP</span>
+          </div>
+          <div style="padding:6px 14px;display:flex;gap:10px;align-items:center">
+            <span style="font-family:monospace;font-size:12px;color:#3b6ee8;font-weight:700;width:48px">7202</span>
+            <span style="font-size:12px;color:#a0a8d0;flex:1">いすゞ自動車</span>
+            <span style="font-size:10px;color:#fff;background:#E84040;padding:1px 5px;border-radius:3px">JP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 足種・本数切替 -->
+      <div class="card">
+        <span class="feature-icon">📅</span>
+        <div class="feature-title">足種・表示本数の切り替え</div>
+        <div class="feature-body">
+          <strong class="gold">足種</strong>: 日足 / 週足 / 月足を切り替えると即座にデータを再取得してチャートを更新します。<br><br>
+          <strong class="cyan">表示本数</strong>: 50 / 100 / 150 / 200 / 250 / 300 本から選択。デフォルトは 150 本。本数変更時は現在の表示右端を維持したまま左側の範囲を広げます。
+        </div>
+        <!-- Compare grid -->
+        <div style="margin-top:16px" class="compare-grid">
+          <div class="compare-col">
+            <h4><span style="color:var(--cyan)">●</span> 足種</h4>
+            <ul>
+              <li>日足 (1d): 1 営業日 = 1 本</li>
+              <li>週足 (1wk): 1 週 = 1 本</li>
+              <li>月足 (1mo): 1 ヶ月 = 1 本</li>
+            </ul>
+          </div>
+          <div class="compare-col">
+            <h4><span style="color:var(--gold)">●</span> 本数</h4>
+            <ul>
+              <li>50 本: 約 2.5 ヶ月（日足）</li>
+              <li>150 本: 約 7.5 ヶ月（日足）</li>
+              <li>300 本: 約 15 ヶ月（日足）</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- チャート操作 -->
+      <div class="card">
+        <span class="feature-icon">🖱️</span>
+        <div class="feature-title">チャートのマウス操作</div>
+        <div class="feature-body">
+          <strong class="gold">ドラッグ（パン）</strong>: チャートエリアをドラッグすると左右にスクロールします。移動中は Y 軸スケールがリセットされ、表示範囲に応じた高値・安値フィット計算が行われます。<br><br>
+          <strong class="cyan">ホイール（Y軸ズーム）</strong>: 上スクロールで価格レンジを上方向に拡大、下スクロールで下方向に縮小します（比率 8% / ステップ）。<br><br>
+          <strong class="magenta" style="color:var(--magenta)">ホバー（情報表示）</strong>: カーソル位置の日付・OHLC・出来高・MA5/25/75・ボリンジャーバンド・MACD をツールバー下のインフォバーにリアルタイム表示。
+        </div>
+      </div>
+
+      <!-- 更新ボタン -->
+      <div class="card">
+        <span class="feature-icon">🔄</span>
+        <div class="feature-title">データ更新（更新ボタン）</div>
+        <div class="feature-body">
+          右上の「更新」ボタンを押すと現在表示中の銘柄・足種の最新データを取得します。<br><br>
+          バックエンドは DuckDB 内の最終日付を確認し、データが「鮮度切れ」の場合のみ Yahoo Finance API を呼び出す <strong class="gold">差分取得</strong> を行います。既に最新の場合は API 通信なしで即座に返却されます。<br><br>
+          ローディング中はプログレスバーとスピナーが表示され、「更新」ボタンは無効化されます。
+        </div>
+      </div>
+
+      <!-- 予測ローソク足 -->
+      <div class="card">
+        <span class="feature-icon">✍️</span>
+        <div class="feature-title">予測ローソク足の手描き</div>
+        <div class="feature-body">
+          チャート右端の余白エリア（最新足の直後のスロット）でカーソルが <strong class="cyan">クロスヘア</strong> に変わります。そこでドラッグすると予測ローソク足を手描きできます。<br><br>
+          • ドラッグ開始位置が始値、終了位置が終値になります。<br>
+          • 右隣のスロットまでドラッグすると前の足が自動確定し、次の足の描画に移行します（チェーン描画）。<br>
+          • 予測足の MA / BB も自動延長してリアルタイム表示されます。<br>
+          • 予測足にホバーすると「予測 +1」「予測 +2」... と表示されます。
+        </div>
+        <!-- Prediction mock SVG -->
+        <svg viewBox="0 0 280 90" style="width:100%;display:block;margin-top:12px;border-radius:8px;background:rgba(0,0,0,0.3)">
+          <!-- Real candles -->
+          <rect x="10"  y="30" width="8" height="30" fill="#1A9960"/>
+          <rect x="24"  y="25" width="8" height="28" fill="#D63B3B"/>
+          <rect x="38"  y="20" width="8" height="30" fill="#1A9960"/>
+          <rect x="52"  y="18" width="8" height="26" fill="#1A9960"/>
+          <rect x="66"  y="22" width="8" height="28" fill="#D63B3B"/>
+          <rect x="80"  y="16" width="8" height="28" fill="#1A9960"/>
+          <rect x="94"  y="12" width="8" height="30" fill="#1A9960"/>
+          <rect x="108" y="18" width="8" height="26" fill="#D63B3B"/>
+          <rect x="122" y="10" width="8" height="30" fill="#1A9960"/>
+          <!-- Divider -->
+          <line x1="136" y1="0" x2="136" y2="90" stroke="rgba(0,245,255,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+          <text x="140" y="12" fill="rgba(0,245,255,0.5)" font-size="7">予測ゾーン</text>
+          <!-- Pred candles -->
+          <rect x="140" y="8"  width="8" height="30" fill="rgba(26,153,96,0.85)"/>
+          <rect x="154" y="14" width="8" height="28" fill="rgba(212,63,63,0.85)"/>
+          <!-- Drawing preview -->
+          <rect x="168" y="20" width="8" height="18" fill="rgba(26,153,96,0.5)" stroke="rgba(0,245,255,0.5)" stroke-width="1"/>
+          <text x="178" y="30" fill="rgba(0,245,255,0.6)" font-size="9">←ドラッグ中</text>
+          <!-- Pred MA -->
+          <path d="M10,25 Q80,20 136,15 Q160,12 176,14" stroke="#E0AF68" stroke-width="1" fill="none" stroke-dasharray="3,2" opacity="0.7"/>
+          <path d="M10,35 Q80,32 136,28 Q160,26 176,28" stroke="#BB9AF7" stroke-width="1" fill="none" stroke-dasharray="3,2" opacity="0.7"/>
+        </svg>
+      </div>
+
+      <!-- 直線描画 -->
+      <div class="card">
+        <span class="feature-icon">✏️</span>
+        <div class="feature-title">直線描画モード</div>
+        <div class="feature-body">
+          ツールバーの <code>✏</code> ボタンを押すと直線描画モードが ON になります（ボタンが青くなります）。<br><br>
+          チャートエリアでドラッグすると任意の傾きの直線を引けます。ドラッグ中はプレビュー（点線）、マウスボタンを離すと確定（実線）されます。<br><br>
+          再度 <code>✏</code> ボタンを押すと OFF に戻り、通常のドラッグパン操作に切り替わります。直線は銘柄切替や足種変更でリセットされます。
+        </div>
+        <!-- Line drawing mock -->
+        <svg viewBox="0 0 280 90" style="width:100%;display:block;margin-top:12px;border-radius:8px;background:rgba(0,0,0,0.3)">
+          <rect x="10"  y="40" width="8" height="25" fill="#1A9960"/>
+          <rect x="24"  y="35" width="8" height="22" fill="#D63B3B"/>
+          <rect x="38"  y="28" width="8" height="24" fill="#1A9960"/>
+          <rect x="52"  y="25" width="8" height="22" fill="#1A9960"/>
+          <rect x="66"  y="30" width="8" height="20" fill="#D63B3B"/>
+          <rect x="80"  y="22" width="8" height="24" fill="#1A9960"/>
+          <rect x="94"  y="18" width="8" height="22" fill="#1A9960"/>
+          <rect x="108" y="24" width="8" height="20" fill="#D63B3B"/>
+          <rect x="122" y="16" width="8" height="22" fill="#1A9960"/>
+          <rect x="136" y="12" width="8" height="24" fill="#1A9960"/>
+          <!-- Drawn lines -->
+          <line x1="10" y1="65" x2="144" y2="14" stroke="#3B6EE8" stroke-width="2"/>
+          <line x1="10" y1="45" x2="144" y2="28" stroke="#3B6EE8" stroke-width="1.5" stroke-dasharray="5,3" opacity="0.6"/>
+          <!-- Preview line -->
+          <line x1="50" y1="80" x2="200" y2="30" stroke="rgba(59,110,232,0.55)" stroke-width="1.5" stroke-dasharray="4,3"/>
+          <text x="155" y="65" fill="rgba(0,245,255,0.5)" font-size="9">プレビュー（点線）</text>
+        </svg>
+      </div>
+
+      <!-- Y軸モード -->
+      <div class="card">
+        <span class="feature-icon">↕️</span>
+        <div class="feature-title">Y軸表示モード切り替え</div>
+        <div class="feature-body">
+          ツールバーの <code>↕</code> ボタンで 2 つの表示モードを切り替えます。
+        </div>
+        <div class="compare-grid" style="margin-top:14px">
+          <div class="compare-col">
+            <h4><span style="color:var(--subtext)">●</span> OFF（デフォルト）</h4>
+            <ul>
+              <li>下限 = 高値 ÷ 3</li>
+              <li>上限 = 高値 × 1.01</li>
+              <li>縦幅に余裕あり</li>
+              <li>長期トレンドが見やすい</li>
+            </ul>
+          </div>
+          <div class="compare-col">
+            <h4><span style="color:var(--cyan)">●</span> ON（フィット表示）</h4>
+            <ul>
+              <li>下限 = 表示範囲の安値</li>
+              <li>上限 = 表示範囲の高値</li>
+              <li>上下 5% パディング</li>
+              <li>短期の値動きが見やすい</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- 背景ゾーン -->
+      <div class="card">
+        <span class="feature-icon">🎨</span>
+        <div class="feature-title">背景ゾーン・年境界線</div>
+        <div class="feature-body">
+          チャート背景には 2 種類の色分けゾーンが自動描画されます。<br><br>
+          <span style="display:inline-block;width:12px;height:12px;background:rgba(59,110,232,0.25);border-radius:2px;margin-right:6px;vertical-align:middle"></span><strong class="cyan">青ゾーン</strong>: 直近 25 日（MA25 計算期間）<br>
+          <span style="display:inline-block;width:12px;height:12px;background:rgba(255,165,0,0.25);border-radius:2px;margin-right:6px;vertical-align:middle;margin-top:6px"></span><strong class="gold">橙ゾーン</strong>: 直近 25〜75 日（MA75 計算期間）<br><br>
+          年が変わるタイミングには縦の境界線と西暦ラベルが自動挿入されます。
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<hr class="light-hr">
+
+<!-- ===== INDICATORS ===== -->
+<section id="indicators">
+  <div class="container">
+    <div class="section-label">Technical Indicators</div>
+    <h2 class="section-title">テクニカル指標</h2>
+    <p class="section-desc">チャートには 6 種類のテクニカル指標が自動計算・表示されます。計算はバックエンドの pandas で行い、DuckDB にキャッシュされます。</p>
+
+    <!-- Indicator layout SVG -->
+    <svg viewBox="0 0 820 360" style="width:100%;display:block;margin-bottom:40px;border-radius:14px;background:rgba(0,0,0,0.3)" role="img" aria-label="チャートレイアウト">
+      <!-- Main chart area -->
+      <rect x="8" y="8" width="804" height="220" rx="6" fill="rgba(26,31,78,0.6)" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+      <text x="16" y="24" fill="#a0a8d0" font-size="9">メインチャート (yaxis: domain 0.26〜1.0)</text>
+
+      <!-- Candles -->
+      <g>
+        <rect x="20"  y="80"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="35"  y="70"  width="10" height="55" fill="#D63B3B" opacity="0.9"/>
+        <rect x="50"  y="60"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="65"  y="55"  width="10" height="48" fill="#1A9960" opacity="0.9"/>
+        <rect x="80"  y="65"  width="10" height="52" fill="#D63B3B" opacity="0.9"/>
+        <rect x="95"  y="50"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="110" y="44"  width="10" height="52" fill="#1A9960" opacity="0.9"/>
+        <rect x="125" y="58"  width="10" height="48" fill="#D63B3B" opacity="0.9"/>
+        <rect x="140" y="40"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="155" y="36"  width="10" height="52" fill="#1A9960" opacity="0.9"/>
+        <rect x="170" y="48"  width="10" height="46" fill="#D63B3B" opacity="0.9"/>
+        <rect x="185" y="32"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="200" y="28"  width="10" height="52" fill="#1A9960" opacity="0.9"/>
+        <rect x="215" y="40"  width="10" height="46" fill="#D63B3B" opacity="0.9"/>
+        <rect x="230" y="24"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="245" y="20"  width="10" height="52" fill="#1A9960" opacity="0.9"/>
+        <rect x="260" y="30"  width="10" height="48" fill="#D63B3B" opacity="0.9"/>
+        <rect x="275" y="16"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="290" y="12"  width="10" height="52" fill="#1A9960" opacity="0.9"/>
+        <rect x="305" y="24"  width="10" height="46" fill="#D63B3B" opacity="0.9"/>
+        <rect x="320" y="10"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="335" y="8"   width="10" height="52" fill="#1A9960" opacity="0.9"/>
+        <rect x="350" y="18"  width="10" height="46" fill="#D63B3B" opacity="0.9"/>
+        <rect x="365" y="14"  width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="380" y="10"  width="10" height="48" fill="#1A9960" opacity="0.9"/>
+        <rect x="395" y="20"  width="10" height="44" fill="#D63B3B" opacity="0.9"/>
+        <rect x="410" y="8"   width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="425" y="12"  width="10" height="48" fill="#1A9960" opacity="0.9"/>
+        <rect x="440" y="20"  width="10" height="42" fill="#D63B3B" opacity="0.9"/>
+        <rect x="455" y="8"   width="10" height="50" fill="#1A9960" opacity="0.9"/>
+        <rect x="470" y="6"   width="10" height="52" fill="#1A9960" opacity="0.9"/>
+        <rect x="485" y="16"  width="10" height="44" fill="#D63B3B" opacity="0.9"/>
+      </g>
+
+      <!-- BB -->
+      <path d="M20,48 Q200,38 500,28 Q650,22 800,20" stroke="rgba(59,110,232,0.55)" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+      <path d="M20,158 Q200,148 500,138 Q650,132 800,130" stroke="rgba(59,110,232,0.55)" stroke-width="1" fill="none" stroke-dasharray="3,3"/>
+      <path d="M20,48 Q200,38 500,28 Q650,22 800,20 L800,130 Q650,132 500,138 Q200,148 20,158Z" fill="rgba(59,110,232,0.07)"/>
+      <text x="510" y="26" fill="rgba(59,110,232,0.8)" font-size="9">BB+2σ</text>
+      <text x="510" y="135" fill="rgba(59,110,232,0.8)" font-size="9">BB-2σ</text>
+
+      <!-- MA lines -->
+      <path d="M20,135 Q200,125 500,115 Q650,110 800,108" stroke="#7AA2F7" stroke-width="1.5" fill="none"/>
+      <text x="640" y="107" fill="#7AA2F7" font-size="9">MA75</text>
+      <path d="M20,110 Q200,100 500,88 Q650,82 800,80" stroke="#BB9AF7" stroke-width="1.5" fill="none"/>
+      <text x="640" y="79" fill="#BB9AF7" font-size="9">MA25</text>
+      <path d="M20,95 Q100,75 300,65 Q500,60 700,40 Q770,32 800,28" stroke="#E0AF68" stroke-width="1.5" fill="none"/>
+      <text x="640" y="55" fill="#E0AF68" font-size="9">MA5</text>
+
+      <!-- Right y axis labels -->
+      <text x="780" y="30"  fill="#a0a8d0" font-size="8" text-anchor="start">2,900</text>
+      <text x="780" y="100" fill="#a0a8d0" font-size="8" text-anchor="start">2,700</text>
+      <text x="780" y="185" fill="#a0a8d0" font-size="8" text-anchor="start">2,500</text>
+
+      <!-- Volume subplot -->
+      <rect x="8" y="236" width="804" height="58" rx="4" fill="rgba(10,14,39,0.6)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="16" y="250" fill="#a0a8d0" font-size="9">出来高 (yaxis2: domain 0.14〜0.25)</text>
+      <rect x="20"  y="262" width="10" height="26" fill="rgba(26,153,96,0.65)"/>
+      <rect x="35"  y="256" width="10" height="32" fill="rgba(212,63,63,0.65)"/>
+      <rect x="50"  y="260" width="10" height="28" fill="rgba(26,153,96,0.65)"/>
+      <rect x="65"  y="252" width="10" height="36" fill="rgba(26,153,96,0.65)"/>
+      <rect x="80"  y="258" width="10" height="30" fill="rgba(212,63,63,0.65)"/>
+      <rect x="95"  y="254" width="10" height="34" fill="rgba(26,153,96,0.65)"/>
+      <rect x="110" y="262" width="10" height="26" fill="rgba(26,153,96,0.65)"/>
+      <rect x="125" y="256" width="10" height="32" fill="rgba(212,63,63,0.65)"/>
+      <rect x="140" y="248" width="10" height="40" fill="rgba(26,153,96,0.65)"/>
+
+      <!-- MACD subplot -->
+      <rect x="8" y="302" width="804" height="50" rx="4" fill="rgba(10,14,39,0.6)" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+      <text x="16" y="316" fill="#a0a8d0" font-size="9">MACD (12,26,9) (yaxis3: domain 0〜0.13)</text>
+      <!-- MACD histogram bars -->
+      <line x1="8" y1="330" x2="812" y2="330" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <rect x="20"  y="320" width="8"  height="10" fill="rgba(26,153,96,0.7)"/>
+      <rect x="33"  y="322" width="8"  height="8"  fill="rgba(26,153,96,0.7)"/>
+      <rect x="46"  y="330" width="8"  height="8"  fill="rgba(212,63,63,0.7)"/>
+      <rect x="59"  y="328" width="8"  height="6"  fill="rgba(212,63,63,0.7)"/>
+      <rect x="72"  y="318" width="8"  height="12" fill="rgba(26,153,96,0.7)"/>
+      <rect x="85"  y="314" width="8"  height="16" fill="rgba(26,153,96,0.7)"/>
+      <rect x="98"  y="316" width="8"  height="14" fill="rgba(26,153,96,0.7)"/>
+      <rect x="111" y="326" width="8"  height="8"  fill="rgba(212,63,63,0.7)"/>
+      <rect x="124" y="312" width="8"  height="18" fill="rgba(26,153,96,0.7)"/>
+      <rect x="137" y="308" width="8"  height="22" fill="rgba(26,153,96,0.7)"/>
+      <!-- MACD line -->
+      <path d="M20,325 Q80,320 150,315 Q250,310 350,308 Q500,305 650,300 Q750,298 800,296" stroke="#3B6EE8" stroke-width="1.5" fill="none"/>
+      <!-- Signal line -->
+      <path d="M20,326 Q80,322 150,318 Q250,314 350,312 Q500,309 650,306 Q750,304 800,302" stroke="#E0AF68" stroke-width="1.2" fill="none"/>
+    </svg>
+
+    <div class="grid-3">
+      <div class="card">
+        <div class="feature-icon">📈</div>
+        <div class="feature-title" style="color:#E0AF68">MA5（5日移動平均）</div>
+        <div class="feature-body">
+          直近 5 本の終値の単純移動平均。短期のトレンド転換を素早く捉えます。<br>
+          計算式: <code>SMA(close, 5)</code>
+        </div>
+      </div>
+      <div class="card">
+        <div class="feature-icon">📈</div>
+        <div class="feature-title" style="color:#BB9AF7">MA25（25日移動平均）</div>
+        <div class="feature-body">
+          直近 25 本の終値の単純移動平均。中期トレンドの基準線。ボリンジャーバンドの中心線と共通。<br>
+          計算式: <code>SMA(close, 25)</code>
+        </div>
+      </div>
+      <div class="card">
+        <div class="feature-icon">📈</div>
+        <div class="feature-title" style="color:#7AA2F7">MA75（75日移動平均）</div>
+        <div class="feature-body">
+          直近 75 本の終値の単純移動平均。長期トレンドの方向性を確認します。<br>
+          計算式: <code>SMA(close, 75)</code>
+        </div>
+      </div>
+      <div class="card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-title" style="color:#3B6EE8">ボリンジャーバンド（BB ±2σ）</div>
+        <div class="feature-body">
+          MA25 を中心に ±2 標準偏差の上下バンド（青点線）とその間の塗り潰し帯を表示。<br>
+          計算式: <code>MA25 ± 2 × rolling_std(close, 25, ddof=1)</code>
+        </div>
+      </div>
+      <div class="card">
+        <div class="feature-icon">📊</div>
+        <div class="feature-title">MACD（12, 26, 9）</div>
+        <div class="feature-body">
+          EMA12 − EMA26 = MACDライン（青）<br>
+          MACDライン の EMA9 = シグナル（橙）<br>
+          MACD − Signal = ヒストグラム（棒）<br>
+          下部サブプロットに表示。ゼロライン交叉でトレンド転換を確認します。
+        </div>
+      </div>
+      <div class="card">
+        <div class="feature-icon">📉</div>
+        <div class="feature-title">出来高（Volume）</div>
+        <div class="feature-body">
+          中部サブプロットにバーチャートで表示。陽線の日は緑、陰線の日は赤で色分け。<br>
+          表示形式: 1億以上 → <code>X.X億</code>, 1万以上 → <code>XX万</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="light-hr">
+
+<!-- ===== OPERATIONS ===== -->
+<section id="operations">
+  <div class="container">
+    <div class="section-label">Operations Reference</div>
+    <h2 class="section-title">操作リファレンス</h2>
+    <p class="section-desc">ツールバーのボタン・キーボード・マウス操作の全一覧です。</p>
+
+    <div class="grid-2" style="margin-bottom:36px">
+      <!-- Toolbar buttons -->
+      <div>
+        <h3 class="mt-8" style="font-size:15px;color:var(--cyan);margin-bottom:16px">ツールバーボタン</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>ボタン</th><th>名称</th><th>動作</th></tr></thead>
+            <tbody>
+              <tr><td><code>入力欄</code></td><td>銘柄入力</td><td>証券コード・銘柄名で検索。ドロップダウン選択後に自動取得</td></tr>
+              <tr><td><code>日足</code> / <code>週足</code> / <code>月足</code></td><td>足種選択</td><td>変更時に即データ再取得</td></tr>
+              <tr><td><code>50</code>〜<code>300</code></td><td>表示本数</td><td>チャートの表示範囲を変更（デフォルト 150）</td></tr>
+              <tr><td><code>✏</code></td><td>直線描画</td><td>ON/OFF トグル。ON 時はドラッグで直線を描く</td></tr>
+              <tr><td><code>↕</code></td><td>Y軸モード</td><td>ON: 高値・安値フィット / OFF: 3倍比率表示</td></tr>
+              <tr><td><code>更新</code></td><td>データ更新</td><td>最新データを差分取得してチャートを再描画</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Keyboard shortcuts -->
+      <div>
+        <h3 class="mt-8" style="font-size:15px;color:var(--gold);margin-bottom:16px">キーボードショートカット</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>キー</th><th>動作</th></tr></thead>
+            <tbody>
+              <tr><td><code>↓</code></td><td>ドロップダウンの次の候補を選択</td></tr>
+              <tr><td><code>↑</code></td><td>ドロップダウンの前の候補を選択</td></tr>
+              <tr><td><code>Enter</code></td><td>選択中の候補を確定 / 候補なしなら直接取得</td></tr>
+              <tr><td><code>Esc</code></td><td>ドロップダウンを閉じる</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 style="font-size:15px;color:var(--magenta);margin-top:24px;margin-bottom:16px">マウス操作</h3>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>操作</th><th>動作</th></tr></thead>
+            <tbody>
+              <tr><td>チャートをドラッグ</td><td>左右パン（スクロール）</td></tr>
+              <tr><td>ホイール↑</td><td>Y軸を上方向に拡大（8% / ステップ）</td></tr>
+              <tr><td>ホイール↓</td><td>Y軸を下方向に縮小（8% / ステップ）</td></tr>
+              <tr><td>チャートにホバー</td><td>日付・OHLC・指標値をインフォバーに表示</td></tr>
+              <tr><td>右端スロットでドラッグ</td><td>予測ローソク足を手描き</td></tr>
+              <tr><td>✏ ON 時にドラッグ</td><td>チャートに直線を描く</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Hover info fields -->
+    <h3 style="font-size:15px;color:var(--cyan);margin-bottom:16px">ホバーインフォバーの表示項目</h3>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>説明</th><th>色</th></tr></thead>
+        <tbody>
+          <tr><td>日付</td><td>ローソク足の日付（YYYY-MM-DD）</td><td>デフォルト</td></tr>
+          <tr><td>O / H / L</td><td>始値 / 高値 / 安値</td><td>デフォルト</td></tr>
+          <tr><td>C（終値）</td><td>終値。始値以上なら緑、以下なら赤</td><td>緑 / 赤</td></tr>
+          <tr><td>Vol（出来高）</td><td>億単位・万単位に自動フォーマット</td><td>デフォルト</td></tr>
+          <tr><td>MA5 / MA25 / MA75</td><td>各移動平均値</td><td>各 MA の色に準拠</td></tr>
+          <tr><td>BB（ボリンジャーバンド）</td><td>下限 – 上限 の形式で表示</td><td>デフォルト</td></tr>
+          <tr><td>MACD / Sig</td><td>MACD ライン値 / シグナル値（小数 2 桁）</td><td>デフォルト</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<hr class="light-hr">
+
+<!-- ===== API ===== -->
+<section id="api">
+  <div class="container">
+    <div class="section-label">API Reference</div>
+    <h2 class="section-title">API リファレンス</h2>
+    <p class="section-desc">バックエンドは FastAPI で実装されており、<code>http://localhost:8000</code> で待ち受けます。対話的ドキュメントは <code>/docs</code> で確認できます。</p>
+
+    <!-- Endpoint 1 -->
+    <div class="card" style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <span class="badge badge-cyan" style="font-size:13px;padding:6px 14px">GET</span>
+        <code style="font-size:14px">/api/stock/{ticker}</code>
+        <span style="color:var(--subtext);font-size:13px">株価 OHLCV + テクニカル指標取得</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>パラメータ</th><th>型</th><th>必須</th><th>説明</th></tr></thead>
+          <tbody>
+            <tr><td><code>ticker</code></td><td>path</td><td><span style="color:var(--green)">○</span></td><td>証券コード（例: <code>7203.T</code>, <code>AAPL</code>）。英数字・ドット・ハイフン・キャレット 1〜20 文字</td></tr>
+            <tr><td><code>interval</code></td><td>query</td><td>–</td><td><code>1d</code> / <code>1wk</code> / <code>1mo</code>。デフォルト <code>1d</code></td></tr>
+            <tr><td><code>period</code></td><td>query</td><td>–</td><td><code>1mo</code> / <code>3mo</code> / <code>6mo</code> / <code>1y</code> / <code>5y</code> / <code>10y</code></td></tr>
+            <tr><td><code>start</code></td><td>query</td><td>–</td><td>開始日（ISO 8601, 例: <code>2024-01-01</code>）</td></tr>
+            <tr><td><code>end</code></td><td>query</td><td>–</td><td>終了日（ISO 8601）</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px;padding:14px 18px;background:rgba(0,0,0,0.35);border-radius:8px;border-left:3px solid var(--cyan)">
+        <div style="font-size:11px;color:var(--subtext);margin-bottom:8px">レスポンス例</div>
+        <pre style="font-family:monospace;font-size:12px;color:#a0a8d0;white-space:pre-wrap">{
+  "ticker": "7203.T",
+  "name": "トヨタ自動車",
+  "interval": "1d",
+  "ohlcv": [
+    { "date": "2025-07-01", "open": 2680, "high": 2715, "low": 2665, "close": 2710, "volume": 12400000 }
+  ],
+  "indicators": {
+    "ma": { "5": [...], "25": [...], "75": [...] },
+    "bollinger": { "upper": [...], "mid": [...], "lower": [...] },
+    "macd": { "macd": [...], "signal": [...], "hist": [...] },
+    "rsi": [...]
+  }
+}</pre>
+      </div>
+    </div>
+
+    <!-- Endpoint 2 -->
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+        <span class="badge badge-gold" style="font-size:13px;padding:6px 14px">GET</span>
+        <code style="font-size:14px">/api/securities/search</code>
+        <span style="color:var(--subtext);font-size:13px">銘柄マスター検索（オートコンプリート用）</span>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>パラメータ</th><th>型</th><th>必須</th><th>説明</th></tr></thead>
+          <tbody>
+            <tr><td><code>q</code></td><td>query</td><td><span style="color:var(--green)">○</span></td><td>検索文字列（コード・銘柄名の部分一致）</td></tr>
+            <tr><td><code>limit</code></td><td>query</td><td>–</td><td>最大返却件数。デフォルト 10、フロントエンドは 8 を指定</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:16px;padding:14px 18px;background:rgba(0,0,0,0.35);border-radius:8px;border-left:3px solid var(--gold)">
+        <div style="font-size:11px;color:var(--subtext);margin-bottom:8px">レスポンス例</div>
+        <pre style="font-family:monospace;font-size:12px;color:#a0a8d0;white-space:pre-wrap">[
+  { "ticker": "7203.T", "code": "7203", "name": "トヨタ自動車", "market": "JP" },
+  { "ticker": "7201.T", "code": "7201", "name": "日産自動車",   "market": "JP" }
+]</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="light-hr">
+
+<!-- ===== TROUBLESHOOT ===== -->
+<section id="troubleshoot">
+  <div class="container">
+    <div class="section-label">Troubleshooting</div>
+    <h2 class="section-title">トラブルシューティング</h2>
+    <p class="section-desc">よくあるエラーと解決策をまとめています。</p>
+
+    <details>
+      <summary>チャートが表示されず「エラー」と表示される</summary>
+      <div class="acc-body">
+        <p><strong>原因 1: バックエンドが起動していない</strong><br>
+        ターミナルで <code>uvicorn main:app --reload --port 8000</code> を実行し、サーバーが起動していることを確認してください。</p>
+        <p><strong>原因 2: ポート 8000 が別プロセスに使用されている</strong><br>
+        <code>lsof -i :8000</code> で確認し、別ポートを指定する場合は <code>app.js</code> 内の <code>API_BASE</code> 定数も変更してください。</p>
+        <p><strong>原因 3: ティッカーシンボルが存在しない</strong><br>
+        日本株は 4 桁の証券コード（例: <code>7203</code>）、米国株は正式なティッカー（例: <code>AAPL</code>）を入力してください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>銘柄を入力してもドロップダウンが表示されない</summary>
+      <div class="acc-body">
+        <p>バックエンド起動直後は証券マスターデータのバックグラウンド取得が走るため、数秒〜数十秒かかる場合があります。しばらく待ってから再度入力してください。</p>
+        <p>または、バックエンドが起動していない状態では API 呼び出しが無視されます。バックエンドを起動してからブラウザのページをリロードしてください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>データ取得中（ローディング）が終わらない</summary>
+      <div class="acc-body">
+        <p>初回データ取得時は Yahoo Finance から最大 10 年分をダウンロードするため、銘柄によっては 10〜30 秒かかる場合があります。</p>
+        <p>ネットワーク環境が悪い場合や Yahoo Finance 側のレート制限に引っかかった場合も遅延することがあります。ブラウザのコンソール（F12）を開いてエラーを確認してください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Yahoo Finance からデータが取得できない（404 エラー）</summary>
+      <div class="acc-body">
+        <p>日本株: 証券コード 4 桁を入力してください（<code>7203</code>）。末尾の <code>.T</code> は自動付加されます。</p>
+        <p>米国株: 正確なティッカーシンボルを入力してください（<code>AAPL</code>、<code>MSFT</code> など）。</p>
+        <p>ETF・指数（例: <code>^N225</code>）はティッカーとして直接入力可能です。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>予測ローソク足が描けない（クロスヘアカーソルにならない）</summary>
+      <div class="acc-body">
+        <p>予測ローソク足を描けるのは「現在表示されている最新足の直後のスロット」のみです。</p>
+        <p>チャートを右端まで（最新足が表示されるように）スクロールしてから、最新足の右側の空白エリアにカーソルを移動してください。カーソルがクロスヘアに変わったらドラッグ可能です。</p>
+        <p>直線描画モード（<code>✏</code> ON）が有効な場合は予測描画が無効になります。<code>✏</code> ボタンを再度押してOFFにしてください。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>Y軸がホイール操作後に元に戻らない</summary>
+      <div class="acc-body">
+        <p>Y 軸スケール（<code>yScale</code>）はパン（ドラッグ）操作を行うと自動でリセットされ、表示範囲に合った自動計算値に戻ります。</p>
+        <p>またはチャートを一度別の本数ボタンで切り替えてから戻しても Y 軸がリセットされます。</p>
+      </div>
+    </details>
+
+    <details>
+      <summary>DuckDB ファイルが壊れたと思われる場合</summary>
+      <div class="acc-body">
+        <p>バックエンドを停止し、<code>stock-chart/backend/stock.duckdb</code> および <code>stock.duckdb.wal</code> を削除してから再起動してください。データは Yahoo Finance から再取得されます。</p>
+        <div style="margin-top:10px;padding:12px 16px;background:rgba(0,0,0,0.4);border-radius:8px;font-family:monospace;font-size:12px;color:#ff4d6d;border:1px solid rgba(255,77,109,0.2)">
+          rm stock-chart/backend/stock.duckdb<br>
+          rm stock-chart/backend/stock.duckdb.wal
+        </div>
+      </div>
+    </details>
+
+    <details>
+      <summary>直線が意図しない位置に引かれる</summary>
+      <div class="acc-body">
+        <p>直線の位置は X 軸がカテゴリインデックス、Y 軸が株価の浮動小数点値として記録されます。非常に短い（X 差が 0.2 未満かつ Y 差が 1 未満）ドラッグは誤操作とみなして記録されません。</p>
+        <p>意図しない直線はページをリロードすると消去されます（直線はメモリ上にのみ保持されます）。</p>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ===== FOOTER ===== -->
+<footer>
+  <div class="footer-inner">
+    <!-- Footer diagram -->
+    <svg viewBox="0 0 600 60" style="width:100%;max-width:600px;display:block;margin:0 auto 24px">
+      <defs>
+        <linearGradient id="footerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#ffd700" stop-opacity="0.1"/>
+          <stop offset="50%" stop-color="#00f5ff" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#ff00ff" stop-opacity="0.1"/>
+        </linearGradient>
+      </defs>
+      <rect x="0" y="20" width="600" height="20" rx="10" fill="url(#footerGrad)"/>
+      <text x="300" y="34" text-anchor="middle" fill="rgba(255,255,255,0.4)" font-size="10" font-family="monospace">
+        stock.duckdb ← FastAPI (8000) ← Plotly.js ← Browser
+      </text>
+    </svg>
+
+    <div class="footer-title">株価チャートアプリ</div>
+    <div class="footer-meta">
+      <strong>バックエンド</strong>: FastAPI 0.138.1 / uvicorn 0.49.0 / pandas 2.2.1 / DuckDB 1.5.4 / httpx 0.28.1<br>
+      <strong>フロントエンド</strong>: Plotly.js 2.35.2 / Vanilla JavaScript<br>
+      <strong>データソース</strong>: Yahoo Finance API (query2.finance.yahoo.com)<br>
+      <strong>マニュアル生成日</strong>: 2026年7月<br><br>
+      &copy; 株価チャートアプリ — このマニュアルはソースコードから自動解析して生成されました。
+    </div>
+  </div>
+</footer>
+
+</div><!-- .page -->
+
+<script>
+// Generate stars
+(function() {
+  const container = document.getElementById('stars');
+  for (let i = 0; i < 80; i++) {
+    const s = document.createElement('div');
+    s.className = 'star';
+    const size = Math.random() * 2.5 + 0.5;
+    s.style.cssText = [
+      `width:${size}px`,
+      `height:${size}px`,
+      `left:${Math.random()*100}%`,
+      `top:${Math.random()*100}%`,
+      `--dur:${(Math.random()*3+2).toFixed(1)}s`,
+      `--delay:${(Math.random()*4).toFixed(1)}s`,
+      `--dur2:${(Math.random()*6+5).toFixed(1)}s`,
+      `--delay2:${(Math.random()*4).toFixed(1)}s`,
+    ].join(';');
+    container.appendChild(s);
+  }
+})();
+
+// Accordion: allow only one open at a time (optional)
+document.querySelectorAll('details').forEach(d => {
+  d.addEventListener('toggle', () => {
+    if (d.open) {
+      document.querySelectorAll('details').forEach(o => {
+        if (o !== d && o.open) o.removeAttribute('open');
+      });
+    }
+  });
+});
+</script>
+</body>
+</html>

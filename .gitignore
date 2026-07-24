@@ -1,0 +1,9 @@
+backend/stock.duckdb
+*.duckdb.wal
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.DS_Store
+pytest_out.log
+.claude/settings.local.json

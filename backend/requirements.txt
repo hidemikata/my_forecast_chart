@@ -1,0 +1,11 @@
+# Runtime
+fastapi==0.138.1
+uvicorn[standard]==0.49.0
+pandas==2.2.1
+duckdb==1.5.4
+httpx==0.28.1
+xlrd
+
+# Dev / test
+pytest==9.1.1
+freezegun==1.5.5
