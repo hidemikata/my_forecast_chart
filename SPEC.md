@@ -100,7 +100,26 @@ stock-chart/
 - ルーターは両方とも`prefix="/api"`でマウント。
 - `app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True))`により`frontend/`配下を`/`にマウント（`FRONTEND_DIR`は`Path(__file__).resolve().parent.parent / "frontend"`で解決するため、実行時のカレントディレクトリに依存しない）。ルーター登録より後にマウントすることで、`/api`配下は先にAPIルーターがマッチする。`html=True`により`/`アクセス時に`index.html`が自動的に返却される。
 - フロントエンドとバックエンドが同一オリジンになったため、CORSミドルウェアは設置していない（クロスオリジンリクエストが発生しないため不要）。
-- 認証・レート制限は未実装。
+- 認証は未実装。
+- レート制限は`RateLimitMiddleware`（`services/rate_limit.py`）として実装済み。詳細は5.2.1参照。
+
+#### 5.1.1 レート制限（`backend/services/rate_limit.py` / `backend/config.py`）
+
+- IP単位のスライディングウィンドウ方式。`/api/`配下のパスのみ対象（静的ファイル配信は対象外）。
+- プロセス内メモリ（`dict[str, deque]`）で状態を保持するため、複数ワーカープロセスで起動する場合はワーカーごとに別カウントになる（本アプリはシングルプロセス運用を前提）。
+- 環境変数で調整可能（`backend/config.py`）:
+
+| 環境変数 | デフォルト | 説明 |
+|---|---|---|
+| `RATE_LIMIT_ENABLED` | `true` | `false`/`0`/`no`/`off`で無効化 |
+| `RATE_LIMIT_REQUESTS` | `120` | ウィンドウ内の許可リクエスト数（IPごと） |
+| `RATE_LIMIT_WINDOW_SECONDS` | `60` | ウィンドウ長（秒） |
+
+- 制限超過時のレスポンス: `429 Too Many Requests`、`Retry-After`ヘッダー付き。
+  ```json
+  { "detail": "リクエストが多すぎます。しばらく待ってから再度お試しください。", "retry_after": 30 }
+  ```
+- フロントエンド（`frontend/app.js: formatRateLimitMessage`）は`429`受信時に`detail`と`retry_after`を組み合わせたメッセージ（例:「…（約30秒後に再試行できます）」）をエラー表示欄に出す。チャート取得（`fetchChart`）とオートコンプリート検索（`fetchSuggestions`）の両方で対応。
 
 ### 5.2 API仕様
 
