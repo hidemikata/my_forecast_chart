@@ -8,14 +8,19 @@
 
 ## 2. システム構成
 
+フロントエンドとバックエンドは同一プロセス・同一オリジン（単一ポート）で提供される。FastAPI (`backend/main.py`) が `/api` 配下でAPIを提供しつつ、`StaticFiles`マウントにより`frontend/`配下の静的ファイル（`index.html`/`app.js`/`style.css`）も同じポートで配信する。これによりCORS設定は不要（クロスオリジンが発生しないため）。
+
 ```
-Browser (frontend/app.js + Plotly.js CDN)
+Browser
+   │  GET /                              → frontend/index.html
+   │  GET /app.js, /style.css            → frontend/ 配下の静的ファイル
    │  fetch /api/stock/{ticker}?interval=&period=|start=&end=
    │  fetch /api/securities/search?q=
    ▼
-FastAPI (backend/main.py, prefix=/api)
+FastAPI (backend/main.py)
    ├─ routers/stock.py       … GET /api/stock/{ticker}
-   └─ routers/securities.py  … GET /api/securities/search
+   ├─ routers/securities.py  … GET /api/securities/search
+   └─ StaticFiles(directory=frontend/, html=True) … "/" にマウント（frontend/app.js等を配信）
    ▼
 services/market.py  … Yahoo Finance取得 + テクニカル指標計算 + 鮮度判定
 services/db.py      … DuckDB永続化（ohlcv / indicators / securities）
@@ -23,6 +28,8 @@ services/securities.py … JPX・NASDAQ銘柄マスタ取得
    ▼
 DuckDB (backend/stock.duckdb)
 ```
+
+同一LAN内の他端末（iPad/iPhone等）からアクセスする場合は、`stock-chart/start_lan.sh`を実行する。uvicornを`--host 0.0.0.0`で起動し、MacのLAN IPアドレスを表示する（フロントエンド・バックエンドとも単一ポート8000で待ち受けるため、起動するプロセスは1つのみ）。
 
 ## 3. 技術スタック
 
@@ -75,10 +82,11 @@ stock-chart/
 │   │   ├── market.py         # Yahoo Finance取得・指標計算
 │   │   └── securities.py     # 銘柄マスタ取得（JPX/NASDAQ）
 │   └── tests/                # pytest（backend/tests/配下）
-└── frontend/
-    ├── index.html
-    ├── style.css
-    └── app.js
+├── frontend/
+│   ├── index.html
+│   ├── style.css
+│   └── app.js
+└── start_lan.sh               # LAN公開用起動スクリプト（uvicorn --host 0.0.0.0でLAN内の他端末からアクセス可能にする）
 ```
 
 ## 5. バックエンド仕様
@@ -89,8 +97,10 @@ stock-chart/
 - 起動をブロックしないよう、銘柄マスタ取得（`securities.ensure_securities`）はデーモンスレッドで非同期実行。
 - 終了時に`db.shutdown()`でDB接続をクローズ。
 - ロギングは`logging.basicConfig(level=logging.INFO)`。
-- CORS: `allow_origins=["*"]`、`allow_methods=["GET"]`のみ、`allow_headers=["*"]`（開発用設定。本番デプロイ時は要変更）。
-- ルーターは両方とも`prefix="/api"`でマウント。認証・レート制限は未実装。
+- ルーターは両方とも`prefix="/api"`でマウント。
+- `app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True))`により`frontend/`配下を`/`にマウント（`FRONTEND_DIR`は`Path(__file__).resolve().parent.parent / "frontend"`で解決するため、実行時のカレントディレクトリに依存しない）。ルーター登録より後にマウントすることで、`/api`配下は先にAPIルーターがマッチする。`html=True`により`/`アクセス時に`index.html`が自動的に返却される。
+- フロントエンドとバックエンドが同一オリジンになったため、CORSミドルウェアは設置していない（クロスオリジンリクエストが発生しないため不要）。
+- 認証・レート制限は未実装。
 
 ### 5.2 API仕様
 
@@ -385,7 +395,7 @@ DOM構造は上から下に以下の要素が並ぶ縦方向フレックスレ�
 
 ### 6.4 API呼び出しとURL構築
 
-- `API_BASE = 'http://localhost:8000/api'`にハードコード。
+- `API_BASE = '/api'`（相対パス）。フロントエンドはバックエンドと同一オリジン・同一ポートで配信されるため、ホスト名やポートに依存しない。
 - `buildUrl()`: 入力欄の値を`trim()`。空なら`null`を返す。ティッカーは`selectedTicker`（ドロップダウン選択済み）優先、なければ`normalizeTicker(raw)`（4桁数字なら`.T`付与、それ以外は大文字化のみ）。入力欄の表示は`displayCode(ticker)`（`.T`除去）に正規化される。
 - クエリパラメータは常に`{ interval: intervalSel.value, period: '10y' }`（フロントエンドは常に10年分を要求し、表示本数はクライアント側の`candleCount`とX軸範囲操作で制御する）。
 - `fetchChart()`: ドロップダウンを閉じ、URLを構築、ローディング表示ON→`fetch`→成功時`renderChart(data)`＋`empty-state`を隠して`#chart`を表示、失敗時（非2xx、または例外）は`エラー: {message}`を`#error-msg`に表示（レスポンスJSONの`detail`優先、無ければ`HTTP {status}`）。最後に必ずローディング表示OFF。
@@ -515,8 +525,6 @@ Plotly.jsの複数y軸に以下を割り当てて1チャートに合成する（
 
 ## 8. 既知の制約・注意点
 
-- `frontend/app.js`の`API_BASE`は`http://localhost:8000/api`にハードコードされている。本番デプロイ時は変更が必要。
-- バックエンドのCORS設定（`allow_origins=["*"]`）は開発用。本番では許可オリジンを明示的に指定する必要がある。
 - 認証・レート制限は未実装。
 - 値幅制限クランプは東証の公表テーブルに基づく近似実装であり、実際の呼値単位（呼値の刻み幅）の丸めまでは行っていない。
 - `period`パラメータは暦月・暦年ではなく単純日数換算（例: `1mo`=30日固定）。

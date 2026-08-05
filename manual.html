@@ -716,55 +716,39 @@ section { padding: 72px 0; }
         <text x="80" y="184" text-anchor="middle" fill="#fff" font-size="12" font-weight="700">ユーザー</text>
         <text x="80" y="200" text-anchor="middle" fill="#a0a8d0" font-size="10">ブラウザ操作</text>
 
-        <!-- Frontend -->
-        <rect x="200" y="100" width="160" height="140" rx="10" fill="rgba(255,215,0,0.07)" stroke="rgba(255,215,0,0.45)" stroke-width="1.5"/>
-        <text x="280" y="130" text-anchor="middle" fill="#ffd700" font-size="11" font-weight="700">フロントエンド</text>
-        <line x1="205" y1="138" x2="355" y2="138" stroke="rgba(255,215,0,0.2)" stroke-width="1"/>
-        <text x="280" y="158" text-anchor="middle" fill="#fff" font-size="11">index.html</text>
-        <text x="280" y="176" text-anchor="middle" fill="#fff" font-size="11">app.js</text>
-        <text x="280" y="194" text-anchor="middle" fill="#fff" font-size="11">style.css</text>
-        <text x="280" y="214" text-anchor="middle" fill="#a0a8d0" font-size="9">Plotly.js</text>
-        <text x="280" y="228" text-anchor="middle" fill="#a0a8d0" font-size="9">ポート: file://</text>
-
-        <!-- Arrow: User → FE -->
+        <!-- Arrow: User → Server -->
         <line x1="142" y1="170" x2="196" y2="170" stroke="rgba(0,245,255,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
 
-        <!-- Backend -->
-        <rect x="430" y="100" width="160" height="140" rx="10" fill="rgba(255,0,255,0.07)" stroke="rgba(255,0,255,0.4)" stroke-width="1.5"/>
-        <text x="510" y="130" text-anchor="middle" fill="#ff00ff" font-size="11" font-weight="700">バックエンド</text>
-        <line x1="435" y1="138" x2="585" y2="138" stroke="rgba(255,0,255,0.2)" stroke-width="1"/>
-        <text x="510" y="158" text-anchor="middle" fill="#fff" font-size="11">FastAPI</text>
-        <text x="510" y="176" text-anchor="middle" fill="#fff" font-size="11">main.py</text>
-        <text x="510" y="194" text-anchor="middle" fill="#a0a8d0" font-size="9">routers/stock.py</text>
-        <text x="510" y="210" text-anchor="middle" fill="#a0a8d0" font-size="9">routers/securities.py</text>
-        <text x="510" y="228" text-anchor="middle" fill="#a0a8d0" font-size="9">ポート: 8000</text>
-
-        <!-- Arrow: FE → BE -->
-        <line x1="362" y1="155" x2="426" y2="155" stroke="rgba(0,245,255,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
-        <text x="394" y="148" text-anchor="middle" fill="#a0a8d0" font-size="9">HTTP GET</text>
-        <line x1="426" y1="185" x2="362" y2="185" stroke="rgba(255,215,0,0.6)" stroke-width="1.5" marker-end="url(#arrow-gold)"/>
-        <text x="394" y="198" text-anchor="middle" fill="#a0a8d0" font-size="9">JSON</text>
+        <!-- Integrated Server (frontend + backend) -->
+        <rect x="200" y="100" width="390" height="140" rx="10" fill="rgba(255,0,255,0.07)" stroke="rgba(255,0,255,0.4)" stroke-width="1.5"/>
+        <text x="395" y="124" text-anchor="middle" fill="#ff00ff" font-size="12" font-weight="700">FastAPI サーバー（main.py）— 統合</text>
+        <line x1="205" y1="134" x2="585" y2="134" stroke="rgba(255,0,255,0.2)" stroke-width="1"/>
+        <text x="395" y="152" text-anchor="middle" fill="#fff" font-size="11">静的ファイル配信: index.html / app.js / style.css</text>
+        <text x="395" y="169" text-anchor="middle" fill="#fff" font-size="11">API: routers/stock.py ・ routers/securities.py（/api）</text>
+        <text x="395" y="186" text-anchor="middle" fill="#a0a8d0" font-size="9">同一オリジン・同一ポートのためCORS設定不要</text>
+        <text x="395" y="202" text-anchor="middle" fill="#a0a8d0" font-size="9">Plotly.js（CDN）はブラウザ上で読み込み</text>
+        <text x="395" y="222" text-anchor="middle" fill="#a0a8d0" font-size="9">ポート: 8000（フロント・API 共通）</text>
 
         <!-- DuckDB -->
-        <rect x="430" y="275" width="160" height="55" rx="10" fill="rgba(26,245,160,0.07)" stroke="rgba(26,245,160,0.4)" stroke-width="1.5"/>
-        <text x="510" y="300" text-anchor="middle" fill="#1af5a0" font-size="11" font-weight="700">DuckDB</text>
-        <text x="510" y="318" text-anchor="middle" fill="#a0a8d0" font-size="9">stock.duckdb (ローカルファイル)</text>
+        <rect x="315" y="275" width="160" height="55" rx="10" fill="rgba(26,245,160,0.07)" stroke="rgba(26,245,160,0.4)" stroke-width="1.5"/>
+        <text x="395" y="300" text-anchor="middle" fill="#1af5a0" font-size="11" font-weight="700">DuckDB</text>
+        <text x="395" y="318" text-anchor="middle" fill="#a0a8d0" font-size="9">stock.duckdb (ローカルファイル)</text>
 
-        <!-- Arrow: BE → DB -->
-        <line x1="510" y1="242" x2="510" y2="272" stroke="rgba(26,245,160,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
+        <!-- Arrow: Server → DB -->
+        <line x1="395" y1="242" x2="395" y2="272" stroke="rgba(26,245,160,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
 
         <!-- Yahoo Finance -->
         <rect x="630" y="100" width="170" height="55" rx="10" fill="rgba(255,165,0,0.07)" stroke="rgba(255,165,0,0.4)" stroke-width="1.5"/>
         <text x="715" y="124" text-anchor="middle" fill="#ffaa00" font-size="11" font-weight="700">Yahoo Finance API</text>
         <text x="715" y="142" text-anchor="middle" fill="#a0a8d0" font-size="9">query2.finance.yahoo.com</text>
 
-        <!-- Arrow: BE → Yahoo -->
+        <!-- Arrow: Server → Yahoo -->
         <line x1="592" y1="140" x2="626" y2="140" stroke="rgba(255,165,0,0.6)" stroke-width="1.5" marker-end="url(#arrow)"/>
         <text x="609" y="132" text-anchor="middle" fill="#a0a8d0" font-size="8">差分取得</text>
         <text x="609" y="142" text-anchor="middle" fill="#a0a8d0" font-size="8">初回のみ</text>
 
         <!-- Cache hit label -->
-        <text x="510" y="260" text-anchor="middle" fill="#a0a8d0" font-size="8">キャッシュ R/W</text>
+        <text x="395" y="260" text-anchor="middle" fill="#a0a8d0" font-size="8">キャッシュ R/W</text>
       </svg>
     </div>
 
@@ -820,15 +804,15 @@ section { padding: 72px 0; }
         <!-- Step 1 -->
         <rect x="10"  y="15" width="160" height="50" rx="8" fill="rgba(0,245,255,0.1)" stroke="rgba(0,245,255,0.5)" stroke-width="1.5"/>
         <text x="90"  y="36" text-anchor="middle" fill="#00f5ff" font-size="10" font-weight="700">STEP 1</text>
-        <text x="90"  y="52" text-anchor="middle" fill="#fff" font-size="11">バックエンド起動</text>
+        <text x="90"  y="52" text-anchor="middle" fill="#fff" font-size="11">サーバー起動</text>
         <text x="90"  y="64" text-anchor="middle" fill="#a0a8d0" font-size="9">uvicorn main:app --port 8000</text>
         <!-- Arrow -->
         <line x1="172" y1="40" x2="215" y2="40" stroke="#00f5ff" stroke-width="1.5" marker-end="url(#fa)"/>
         <!-- Step 2 -->
         <rect x="220" y="15" width="160" height="50" rx="8" fill="rgba(255,215,0,0.08)" stroke="rgba(255,215,0,0.45)" stroke-width="1.5"/>
         <text x="300" y="36" text-anchor="middle" fill="#ffd700" font-size="10" font-weight="700">STEP 2</text>
-        <text x="300" y="52" text-anchor="middle" fill="#fff" font-size="11">HTML を開く</text>
-        <text x="300" y="64" text-anchor="middle" fill="#a0a8d0" font-size="9">frontend/index.html をブラウザで</text>
+        <text x="300" y="52" text-anchor="middle" fill="#fff" font-size="11">ブラウザでアクセス</text>
+        <text x="300" y="64" text-anchor="middle" fill="#a0a8d0" font-size="9">http://localhost:8000 を開く</text>
         <!-- Arrow -->
         <line x1="382" y1="40" x2="425" y2="40" stroke="#00f5ff" stroke-width="1.5" marker-end="url(#fa)"/>
         <!-- Step 3 -->
@@ -850,25 +834,25 @@ section { padding: 72px 0; }
       <div class="step-card">
         <div class="step-num">1</div>
         <div class="step-content">
-          <h3>バックエンドを起動する</h3>
-          <p>ターミナルで以下コマンドを実行します。<code>--reload</code> オプションでファイル変更を自動検知します。</p>
+          <h3>サーバーを起動する</h3>
+          <p>ターミナルで以下コマンドを実行します。<code>--reload</code> オプションでファイル変更を自動検知します。バックエンド(FastAPI)がフロントエンドの静的ファイル(<code>index.html</code>/<code>app.js</code>/<code>style.css</code>)も同じポートで配信するため、起動するプロセスはこれ1つだけです。</p>
           <div style="margin-top:10px;padding:14px 18px;background:rgba(0,0,0,0.4);border-radius:8px;border:1px solid rgba(0,245,255,0.2);font-family:monospace;font-size:13px;color:#1af5a0">
             cd stock-chart/backend<br>
             uvicorn main:app --reload --port 8000
           </div>
-          <p class="mt-8">起動成功すると <code>http://localhost:8000</code> で API が待ち受けます。初回起動時に DuckDB ファイル (<code>stock.duckdb</code>) が自動生成され、証券マスターデータのバックグラウンド取得も開始します。</p>
+          <p class="mt-8">起動成功すると <code>http://localhost:8000</code> で画面・APIともに待ち受けます。初回起動時に DuckDB ファイル (<code>stock.duckdb</code>) が自動生成され、証券マスターデータのバックグラウンド取得も開始します。</p>
         </div>
       </div>
 
       <div class="step-card">
         <div class="step-num">2</div>
         <div class="step-content">
-          <h3>フロントエンドをブラウザで開く</h3>
-          <p>ファイルマネージャーまたは以下コマンドで <code>frontend/index.html</code> をブラウザで開きます。</p>
+          <h3>ブラウザでアクセスする</h3>
+          <p>ブラウザで <code>http://localhost:8000</code> を開きます。</p>
           <div style="margin-top:10px;padding:14px 18px;background:rgba(0,0,0,0.4);border-radius:8px;border:1px solid rgba(255,215,0,0.2);font-family:monospace;font-size:13px;color:#ffd700">
-            open stock-chart/frontend/index.html
+            open http://localhost:8000
           </div>
-          <p class="mt-8">バックエンドが起動済みであれば、ページを開いた時点で銘柄マスターの検索サジェストが有効になります。</p>
+          <p class="mt-8">同じWi-Fi内のiPad/iPhoneなど他端末からアクセスしたい場合は、<code>stock-chart/start_lan.sh</code> を実行してください。Macの現在のLAN IPアドレスが表示されるので、その端末のブラウザで <code>http://&lt;LAN IPアドレス&gt;:8000</code> を開きます。</p>
         </div>
       </div>
 
@@ -1442,10 +1426,10 @@ section { padding: 72px 0; }
     <details>
       <summary>チャートが表示されず「エラー」と表示される</summary>
       <div class="acc-body">
-        <p><strong>原因 1: バックエンドが起動していない</strong><br>
+        <p><strong>原因 1: サーバーが起動していない</strong><br>
         ターミナルで <code>uvicorn main:app --reload --port 8000</code> を実行し、サーバーが起動していることを確認してください。</p>
         <p><strong>原因 2: ポート 8000 が別プロセスに使用されている</strong><br>
-        <code>lsof -i :8000</code> で確認し、別ポートを指定する場合は <code>app.js</code> 内の <code>API_BASE</code> 定数も変更してください。</p>
+        <code>lsof -i :8000</code> で確認してください。<code>app.js</code> の <code>API_BASE</code> は相対パス(<code>/api</code>)なので、別ポートで起動しても変更は不要です（起動コマンドの<code>--port</code>とアクセスURLのポートを揃えるだけで動作します）。</p>
         <p><strong>原因 3: ティッカーシンボルが存在しない</strong><br>
         日本株は 4 桁の証券コード（例: <code>7203</code>）、米国株は正式なティッカー（例: <code>AAPL</code>）を入力してください。</p>
       </div>
@@ -1454,8 +1438,8 @@ section { padding: 72px 0; }
     <details>
       <summary>銘柄を入力してもドロップダウンが表示されない</summary>
       <div class="acc-body">
-        <p>バックエンド起動直後は証券マスターデータのバックグラウンド取得が走るため、数秒〜数十秒かかる場合があります。しばらく待ってから再度入力してください。</p>
-        <p>または、バックエンドが起動していない状態では API 呼び出しが無視されます。バックエンドを起動してからブラウザのページをリロードしてください。</p>
+        <p>サーバー起動直後は証券マスターデータのバックグラウンド取得が走るため、数秒〜数十秒かかる場合があります。しばらく待ってから再度入力してください。</p>
+        <p>または、サーバーが起動していない状態では API 呼び出しが無視されます。サーバーを起動してからブラウザのページをリロードしてください。</p>
       </div>
     </details>
 
