@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from routers import stock, securities as sec_router
 from services import db, securities
+from services.rate_limit import RateLimitMiddleware
 
 logging.basicConfig(level=logging.INFO)
 
@@ -23,6 +24,7 @@ async def lifespan(app):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(RateLimitMiddleware)
 app.include_router(stock.router, prefix="/api")
 app.include_router(sec_router.router, prefix="/api")
 app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

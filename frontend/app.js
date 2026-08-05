@@ -80,6 +80,15 @@ function clearError() {
   errorMsg.style.display = 'none';
 }
 
+// ---- レート制限 (429) 用メッセージ整形 ----
+function formatRateLimitMessage(body) {
+  const detail = (body && body.detail) || 'リクエストが多すぎます。しばらく待ってから再度お試しください。';
+  if (body && body.retry_after) {
+    return `${detail}（約${body.retry_after}秒後に再試行できます）`;
+  }
+  return detail;
+}
+
 // ---- オートコンプリート ----
 let debounceTimer = null;
 
@@ -136,6 +145,12 @@ function updateDdActive(items) {
 async function fetchSuggestions(q) {
   try {
     const res = await fetch(`${API_BASE}/securities/search?q=${encodeURIComponent(q)}&limit=8`);
+    if (res.status === 429) {
+      const body = await res.json().catch(() => ({}));
+      showError(formatRateLimitMessage(body));
+      closeDropdown();
+      return;
+    }
     if (!res.ok) return;
     const items = await res.json();
     renderDropdown(items);
@@ -198,6 +213,9 @@ async function fetchChart() {
     const res = await fetch(url);
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
+      if (res.status === 429) {
+        throw new Error(formatRateLimitMessage(body));
+      }
       throw new Error(body.detail || `HTTP ${res.status}`);
     }
     const data = await res.json();
