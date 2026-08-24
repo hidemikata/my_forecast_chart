@@ -1,0 +1,11 @@
+**/__pycache__
+**/*.pyc
+backend/.venv
+backend/.pytest_cache
+backend/stock.duckdb
+backend/tests
+.git
+.claude
+frontend-promo
+pytest_out.log
+*.md

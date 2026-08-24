@@ -31,3 +31,6 @@ def _bool_env(name: str, default: bool) -> bool:
 RATE_LIMIT_ENABLED        = _bool_env("RATE_LIMIT_ENABLED", True)
 RATE_LIMIT_REQUESTS       = _int_env("RATE_LIMIT_REQUESTS", 120)
 RATE_LIMIT_WINDOW_SECONDS = _int_env("RATE_LIMIT_WINDOW_SECONDS", 60)
+
+# DuckDB ファイルパス。Fly.io では Volume マウント先 (/data) を指定する。
+DB_PATH = os.environ.get("DB_PATH", "stock.duckdb")
