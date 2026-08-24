@@ -71,8 +71,12 @@ Plotly.js の読み込みタグ（`frontend/index.html`）:
 
 ```
 stock-chart/
+├── Dockerfile                 # Fly.ioデプロイ用コンテナ定義
+├── fly.toml                   # Fly.ioアプリ設定（Volumeマウント /data 等）
+├── .dockerignore
 ├── backend/
 │   ├── main.py               # FastAPIエントリーポイント
+│   ├── config.py             # 環境変数設定（レート制限・DB_PATH）
 │   ├── requirements.txt
 │   ├── routers/
 │   │   ├── stock.py          # GET /api/stock/{ticker}
@@ -93,7 +97,8 @@ stock-chart/
 
 ### 5.1 起動処理（`backend/main.py`）
 
-- `lifespan`コンテキストマネージャで起動時に`db.init_db("stock.duckdb")`を実行しテーブルを作成（`CREATE TABLE IF NOT EXISTS`、冪等）。
+- `lifespan`コンテキストマネージャで起動時に`db.init_db(config.DB_PATH)`を実行しテーブルを作成（`CREATE TABLE IF NOT EXISTS`、冪等）。
+- `DB_PATH`は環境変数で切り替え可能（`backend/config.py`、既定値`"stock.duckdb"`＝カレントディレクトリ）。Fly.io環境では`fly.toml`の`[env]`で`/data/stock.duckdb`に設定し、Fly Volumeへの永続化を行う（8章参照）。
 - 起動をブロックしないよう、銘柄マスタ取得（`securities.ensure_securities`）はデーモンスレッドで非同期実行。
 - 終了時に`db.shutdown()`でDB接続をクローズ。
 - ロギングは`logging.basicConfig(level=logging.INFO)`。
@@ -549,3 +554,4 @@ Plotly.jsの複数y軸に以下を割り当てて1チャートに合成する（
 - `period`パラメータは暦月・暦年ではなく単純日数換算（例: `1mo`=30日固定）。
 - フロントエンドは常にAPIへ`period=10y`を要求し、表示件数はクライアント側（`candleCount`とX軸範囲）でのみ制御する。銘柄検索のサジェスト件数上限（`limit=8`）はフロントエンド側のハードコードであり、バックエンドのデフォルト上限（10）とは独立している。
 - 予測ローソク足・直線描画はブラウザメモリ上のみに保持され、リロードや銘柄・足種の変更で消去される（サーバー側への保存機能はない）。
+- Fly.ioデプロイ（`Dockerfile`/`fly.toml`）はシングルマシン・シングルVolume（`mikachart_data`）構成が前提。DuckDBは単一ファイルへの書き込みを行うため、マシンを複数台にスケールしないこと。
